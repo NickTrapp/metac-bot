@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "pilot_id": "public-short-horizon-20261010-v1",
+  "frozen_at_utc": "2026-10-10T04:02:50.527343Z",
+  "manifest_file_sha256": "a4ad0deeacd8069ec2d3f615aa4a917e4d1418a62ee1ad6014d55ae132aba29d",
+  "selection_reference_time_utc": "2026-10-10T03:57:22Z",
+  "search_request_url": "https://api.manifold.markets/v0/search-markets?term=&contractType=BINARY&filter=open&sort=close-date&limit=1000",
+  "search_retrieved_at_utc": "2026-10-10T03:57:45.494153Z",
+  "selection_order": [
+    "closeTime ascending",
+    "case-sensitive market ID ascending"
+  ],
+  "coverage": {
+    "search_results_returned": 1000,
+    "returned_close_time_range_utc": [
+      "2026-10-10T04:47:00Z",
+      "2026-12-18T22:49:00Z"
+    ],
+    "selection_prefix_length": 22,
+    "eligible_selected_count": 5,
+    "excluded_before_fifth_selection": 17,
+    "full_descriptions_retrieved": 27,
+    "extra_descriptions_retrieved_beyond_selection_prefix": 5,
+    "later_results_not_evaluated": 978,
+    "pagination": "One 1000-result page; stopped at the fifth eligible item in the deterministic prefix, well before the returned boundary. No universal marketplace-coverage claim."
+  },
+  "eligibility": {
+    "expected_outcome_window_hours": [
+      24,
+      72
+    ],
+    "minimum_forecast_completion_lead_hours": 6,
+    "selected_events_independence": "Five distinct scheduled matches with no shared teams or duplicate outcomes; this operational independence is not a claim of mathematical statistical independence.",
+    "n_a_contingencies": "Preserved, and never mapped to NO. Partial, cancelled, disputed or otherwise ambiguous outcomes are unscored/pending. Dates without timezones remain date-only edge cases.",
+    "outcome_timing": "Normal completion is estimated from independently verified start times. Closing time is not an outcome or resolution timestamp. Rescheduling can delay actual completion beyond the initial target window.",
+    "first_eligible_policy": "No forecast output, odds, trade information, or subjective forecast appeal used to select questions."
+  },
+  "selected_evidence": [
+    {
+      "question_id": "qNZCdLqRRN",
+      "original_title": "EPL: Will Everton beat Hull?",
+      "full_source_description_sha256": "5e1f013a59242e817c6937828e6d3481df31866bd02e61620331936d25449e19",
+      "source_criteria_sha256": "26185c3182fe2de3c1fe2cca5e7945018a2283787d8718a5e546711068bd0eee",
+      "retrieved_at_utc": "2026-10-10T03:59:59.355318Z",
+      "schedule_verification_at_utc": "2026-10-10T04:02:19.967359Z",
+      "schedule_evidence": "The official league fixture list gives 14:00 UK time on October 11; Europe/London is BST (UTC+1), so kickoff is 13:00 UTC. The league match-info search excerpt also renders 13:00.",
+      "schedule_source_urls": [
+        "https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season",
+        "https://www.premierleague.com/en/match/2645250/hull-city-vs-everton/info"
+      ],
+      "event_key": "epl-2026-10-11-hull-everton",
+      "teams": [
+        "Hull City",
+        "Everton"
+      ],
+      "background_removed": true,
+      "explicit_metaculus_futureeval_link_check": "No case-insensitive occurrence in title, complete description text/rich links, or topic slugs",
+      "selected": true,
+      "closeTime": 1791723420000,
+      "close_time_utc": "2026-10-11T12:57:00Z"
+    },
+    {
+      "question_id": "5dhzPglphE",
+      "original_title": "EPL: Will Manchester City beat Liverpool?",
+      "full_source_description_sha256": "ce8fd38e3b630207f6f40a3604e292c67dd3fc4764c259a500d3d0c3b19b399c",
+      "source_criteria_sha256": "3e1a6d47e58c915ab4d3d11bee0c7bb5871d45829383abd3bbfedaa0c163aec9",
+      "retrieved_at_utc": "2026-10-10T04:00:01.850405Z",
+      "schedule_verification_at_utc": "2026-10-10T04:02:19.967359Z",
+      "schedule_evidence": "The official league fixture list gives 16:30 UK time; Manchester City explicitly confirms 16:30 BST, equivalent to 15:30 UTC. A Liverpool page displays 15:30 without a reliable per-match timezone label; the explicit BST source and league schedule govern.",
+      "schedule_source_urls": [
+        "https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season",
+        "https://live.mancity.com/news/mens/liverpool-v-city-premier-league-match-preview-october-2026-63926279"
+      ],
+      "event_key": "epl-2026-10-11-liverpool-manchester-city",
+      "teams": [
+        "Liverpool",
+        "Manchester City"
+      ],
+      "background_removed": true,
+      "explicit_metaculus_futureeval_link_check": "No case-insensitive occurrence in title, complete description text/rich links, or topic slugs",
+      "selected": true,
+      "closeTime": 1791732420000,
+      "close_time_utc": "2026-10-11T15:27:00Z"
+    },
+    {
+      "question_id": "6pgNuAdsnq",
+      "original_title": "NFL Week 5: Will the total combined score in the Green Bay Packers vs. Chicago Bears game be OVER 44.5 points?",
+      "full_source_description_sha256": "fac42de2e368ec75636233ddafae0d82d73861931ddb36b0cefbdad448a64a0f",
+      "source_criteria_sha256": "6dd4bdb7832ca99e335007e8eaf369fa7339e9f60d7dbb65332d8c743cda9529",
+      "retrieved_at_utc": "2026-10-10T04:00:04.223678Z",
+      "schedule_verification_at_utc": "2026-10-10T04:02:19.967359Z",
+      "schedule_evidence": "Official September 29 Packers notice changes kickoff from 15:25 Central to noon Central on October 11. America/Chicago is CDT (UTC-5), so noon is 17:00 UTC. The official current team schedule agrees.",
+      "schedule_source_urls": [
+        "https://www.packers.com/news/time-change-packers-bears-kickoff-on-oct-11-moving-to-noon-ct-2026",
+        "https://www.packers.com/schedule/2026-opponents-app"
+      ],
+      "event_key": "nfl-2026-reg5-bears-packers",
+      "teams": [
+        "Chicago Bears",
+        "Green Bay Packers"
+      ],
+      "background_removed": true,
+      "explicit_metaculus_futureeval_link_check": "No case-insensitive occurrence in title, complete description text/rich links, or topic slugs",
+      "selected": true,
+      "closeTime": 1791737820000,
+      "close_time_utc": "2026-10-11T16:57:00Z"
+    },
+    {
+      "question_id": "Cggy66ROsy",
+      "original_title": "NFL Week 5: Will the total combined score in the Minnesota Vikings vs. New Orleans Saints game be OVER 42.5 points?",
+      "full_source_description_sha256": "ab5e93eb1424b9b7f10c413d7db4d122285a18e818f0b8304b9508dac45f913e",
+      "source_criteria_sha256": "378652f30094ab9a8724da04bafccd585f0d783030a3591a0c35f04603809c94",
+      "retrieved_at_utc": "2026-10-10T04:00:07.412943Z",
+      "schedule_verification_at_utc": "2026-10-10T04:02:19.967359Z",
+      "schedule_evidence": "The official Saints game-center schedule lists October 11 at 12:00 PM CDT, equivalent to 17:00 UTC; the venue also lists noon on October 11.",
+      "schedule_source_urls": [
+        "https://www.neworleanssaints.com/game-day/2026/reg-week5/vikings-at-saints/",
+        "https://www.caesarssuperdome.com/events/detail/saints-vikings"
+      ],
+      "event_key": "nfl-2026-reg5-vikings-saints",
+      "teams": [
+        "Minnesota Vikings",
+        "New Orleans Saints"
+      ],
+      "background_removed": true,
+      "explicit_metaculus_futureeval_link_check": "No case-insensitive occurrence in title, complete description text/rich links, or topic slugs",
+      "selected": true,
+      "closeTime": 1791737820000,
+      "close_time_utc": "2026-10-11T16:57:00Z"
+    },
+    {
+      "question_id": "Lgg99d8ph0",
+      "original_title": "NFL Week 5: Will the total combined score in the New England Patriots vs. Las Vegas Raiders game be OVER 45.5 points?",
+      "full_source_description_sha256": "0565ed160e89caf9962590dfa0f9a054cc2eb889c7cbccc7288f919140d7a137",
+      "source_criteria_sha256": "89f23446ed3bae3d5ca06cb197424fc8600a42270daeef210ab7f94107a818b2",
+      "retrieved_at_utc": "2026-10-10T04:00:10.186611Z",
+      "schedule_verification_at_utc": "2026-10-10T04:02:19.967359Z",
+      "schedule_evidence": "Official Raiders broadcast information gives October 11 at 10:00 AM Pacific; the Patriots preview explicitly gives 1:00 PM EDT. Both equal 17:00 UTC.",
+      "schedule_source_urls": [
+        "https://www.raiders.com/news/how-to-watch-listen-to-livestream-las-vegas-raiders-at-new-england-patriots-101126-nfl-week-5",
+        "https://www.patriots.com/news/game-preview-patriots-vs-raiders-nfl-week-5"
+      ],
+      "event_key": "nfl-2026-reg5-raiders-patriots",
+      "teams": [
+        "Las Vegas Raiders",
+        "New England Patriots"
+      ],
+      "background_removed": true,
+      "explicit_metaculus_futureeval_link_check": "No case-insensitive occurrence in title, complete description text/rich links, or topic slugs",
+      "selected": true,
+      "closeTime": 1791737820000,
+      "close_time_utc": "2026-10-11T16:57:00Z"
+    }
+  ],
+  "exclusions": [
+    {
+      "rank": 1,
+      "market_id": "ZhC58nQCSc",
+      "url": "https://manifold.markets/abcde/will-i-get-a-positive-pregnancy-tes-zEEl6pCAPc",
+      "closeTime": 1791607620000,
+      "close_time_utc": "2026-10-10T04:47:00Z",
+      "reasons": [
+        "personal_self_report"
+      ]
+    },
+    {
+      "rank": 2,
+      "market_id": "C9p5dQPdRU",
+      "url": "https://manifold.markets/Web3ICP/epl-will-there-be-over-25-total-goa-NhudNtR5LR",
+      "closeTime": 1791631740000,
+      "close_time_utc": "2026-10-10T11:29:00Z",
+      "reasons": [
+        "scheduled_normal_outcome_less_than_24_hours_after_reference"
+      ]
+    },
+    {
+      "rank": 3,
+      "market_id": "9z8uuZA85S",
+      "url": "https://manifold.markets/Web3ICP/epl-will-brentford-beat-aston-villa",
+      "closeTime": 1791633540000,
+      "close_time_utc": "2026-10-10T11:59:00Z",
+      "reasons": [
+        "scheduled_normal_outcome_less_than_24_hours_after_reference"
+      ]
+    },
+    {
+      "rank": 4,
+      "market_id": "6OAtOquysp",
+      "url": "https://manifold.markets/Web3ICP/epl-will-chelsea-beat-bournemouth",
+      "closeTime": 1791640620000,
+      "close_time_utc": "2026-10-10T13:57:00Z",
+      "reasons": [
+        "scheduled_normal_outcome_less_than_24_hours_after_reference"
+      ]
+    },
+    {
+      "rank": 5,
+      "market_id": "Aq0yc6duZ9",
+      "url": "https://manifold.markets/Web3ICP/epl-will-brighton-beat-sunderland-d",
+      "closeTime": 1791640620000,
+      "close_time_utc": "2026-10-10T13:57:00Z",
+      "reasons": [
+        "scheduled_normal_outcome_less_than_24_hours_after_reference"
+      ]
+    },
+    {
+      "rank": 6,
+      "market_id": "ICRyy9CRpq",
+      "url": "https://manifold.markets/Web3ICP/epl-will-fulham-beat-ipswich-town-d",
+      "closeTime": 1791640620000,
+      "close_time_utc": "2026-10-10T13:57:00Z",
+      "reasons": [
+        "scheduled_normal_outcome_less_than_24_hours_after_reference"
+      ]
+    },
+    {
+      "rank": 7,
+      "market_id": "50AZLSQN9A",
+      "url": "https://manifold.markets/Web3ICP/will-manchester-united-beat-tottenh-ZcUCylugZ5",
+      "closeTime": 1791649620000,
+      "close_time_utc": "2026-10-10T16:27:00Z",
+      "reasons": [
+        "scheduled_normal_outcome_less_than_24_hours_after_reference"
+      ]
+    },
+    {
+      "rank": 8,
+      "market_id": "8NqElER9Zs",
+      "url": "https://manifold.markets/121/will-there-be-at-least-twice-the-nu",
+      "closeTime": 1791649740000,
+      "close_time_utc": "2026-10-10T16:29:00Z",
+      "reasons": [
+        "self_referential_market"
+      ]
+    },
+    {
+      "rank": 9,
+      "market_id": "ht9ygI80gy",
+      "url": "https://manifold.markets/ScottDickerson/will-i-successfully-end-racism-tomo",
+      "closeTime": 1791653580000,
+      "close_time_utc": "2026-10-10T17:33:00Z",
+      "reasons": [
+        "personal_action",
+        "subjective_or_unverifiable"
+      ]
+    },
+    {
+      "rank": 10,
+      "market_id": "yl599zLuSl",
+      "url": "https://manifold.markets/Tetraspace/will-tetra-clear-the-junk-off-the-t",
+      "closeTime": 1791668760000,
+      "close_time_utc": "2026-10-10T21:46:00Z",
+      "reasons": [
+        "personal_self_report"
+      ]
+    },
+    {
+      "rank": 11,
+      "market_id": "yNZ90SR8UA",
+      "url": "https://manifold.markets/ZviMowshowitz/soai3-openended-agents-make-a-meani",
+      "closeTime": 1791673440000,
+      "close_time_utc": "2026-10-10T23:04:00Z",
+      "reasons": [
+        "subjective_grading",
+        "no_verified_scheduled_outcome_in_window",
+        "model_discretion_fallback"
+      ]
+    },
+    {
+      "rank": 12,
+      "market_id": "R9s08y9P0R",
+      "url": "https://manifold.markets/Tetraspace/will-tetra-apply-to-that-job-by-11t",
+      "closeTime": 1791676740000,
+      "close_time_utc": "2026-10-10T23:59:00Z",
+      "reasons": [
+        "personal_self_report"
+      ]
+    },
+    {
+      "rank": 13,
+      "market_id": "zLlIPUSAh8",
+      "url": "https://manifold.markets/igloo/will-i-solve-tomorrows-integral-in-gUzp8RNtyZ",
+      "closeTime": 1791690240000,
+      "close_time_utc": "2026-10-11T03:44:00Z",
+      "reasons": [
+        "personal_self_report"
+      ]
+    },
+    {
+      "rank": 14,
+      "market_id": "qu2zCdCUNn",
+      "url": "https://manifold.markets/Traveel/daily-coinflip-zulAz29ycE",
+      "closeTime": 1791691140000,
+      "close_time_utc": "2026-10-11T03:59:00Z",
+      "reasons": [
+        "platform_dependent_randomization",
+        "creator_manual_fallback",
+        "no_independent_primary_event_source"
+      ]
+    },
+    {
+      "rank": 15,
+      "market_id": "2UyRLytdpc",
+      "url": "https://manifold.markets/Web3ICP/epl-will-crystal-palace-beat-nottin",
+      "closeTime": 1791723420000,
+      "close_time_utc": "2026-10-11T12:57:00Z",
+      "reasons": [
+        "explicit_partial_resolution_possible"
+      ]
+    },
+    {
+      "rank": 17,
+      "market_id": "p60dUnQ2ER",
+      "url": "https://manifold.markets/Web3ICP/nfl-week-5-will-the-total-combined-Oqh695Zhs0",
+      "closeTime": 1791725220000,
+      "close_time_utc": "2026-10-11T13:27:00Z",
+      "reasons": [
+        "contradictory_thresholds_title_44_5_vs_rules_46_5"
+      ]
+    },
+    {
+      "rank": 19,
+      "market_id": "IEdtyhCsIg",
+      "url": "https://manifold.markets/Web3ICP/epl-will-manchester-city-beat-liver-2In5dqdQp0",
+      "closeTime": 1791732420000,
+      "close_time_utc": "2026-10-11T15:27:00Z",
+      "reasons": [
+        "duplicate_event",
+        "draw_no_bet_not_total_binary"
+      ]
+    }
+  ],
+  "same_day_exclusion_schedule_source": "https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season",
+  "safety_and_provenance": {
+    "api_docs": "https://docs.manifold.markets/api",
+    "api_calls": "Public unauthenticated GET only",
+    "no_model_forecasts_generated": true,
+    "no_paid_calls": true,
+    "no_credentials_accounts_trades_posts_or_external_writes": true,
+    "market_signal_handling": "API response objects were parsed and allowlisted in code before model-visible output. Probability, liquidity, pool, volume, holdings, trading history, comments, creator identity, and all raw market background/forecast prose are absent from the delivered manifest. No probability/history/comments endpoints were called.",
+    "background_caveat": "The raw full descriptions carry an AI-generated-description disclaimer. Substantive outcome criteria were independently checked for contradictions; background and creator commentary were removed.",
+    "manifold_resolution_caveat": "Creators can resolve and moderators can reverse decisions; Manifold resolution is not an independently verified ground-truth label. Verify the primary source later, retain platform status separately, and disclose any disagreement.",
+    "overlap_scope": "Checked only explicit Metaculus/FutureEval references in selected public market metadata and description links. No tournament feed, hidden evaluator, or universal overlap search was accessed.",
+    "kalshi": "Not accessed by any route."
+  },
+  "hashes": {
+    "questions": {
+      "qNZCdLqRRN": "2bc1e5a864b483f15df8ac62cf85135b380b397ad4d19fea8c8295dc7864adaa",
+      "5dhzPglphE": "ff477480bfa31b225e4169caea37e5f3e78aed248d17bef5e4c3de6455e1dbec",
+      "6pgNuAdsnq": "f31588414ba0772085dc291a10e33c4c443d1a876b18383775edb78cb622ac44",
+      "Cggy66ROsy": "2b62cdb72cfed3c6983a0afc3d06c4c6dabe88910cf80f1451747e23cebd5f41",
+      "Lgg99d8ph0": "7b961f385d9aa88b63f71b30416c33be2ae8974723b9be6b329557f798a4d75b"
+    },
+    "selection_question_hash_spec": {
+      "algorithm": "sha256",
+      "encoding": "UTF-8",
+      "canonical_json": "sort_keys=True, separators=(comma,colon), ensure_ascii=False; no trailing newline",
+      "fields": [
+        "question_id",
+        "title",
+        "description",
+        "resolution_criteria",
+        "fine_print",
+        "url",
+        "event_time_utc",
+        "event_start_time_utc",
+        "expected_outcome_time_utc",
+        "resolution_source_url",
+        "public"
+      ]
+    },
+    "note": "Selection content hashes cover the explicitly listed fields. The runner may separately hash its complete allowlisted normalized question and exact transmitted model payload."
+  }
+}

@@ -1,0 +1,59 @@
+name: Public prospective paired pilot (one shot)
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/prospective-pilot-20261010.trigger]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: metaculus-initial-openai-campaign
+  cancel-in-progress: false
+
+jobs:
+  prospective_pilot:
+    if: github.repository == 'NickTrapp/metac-bot' && github.run_number == 1 && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline tests without secrets
+        run: python -m unittest discover -s tests -v
+      - name: Verify frozen manifest and sole trigger
+        run: python prospective_pilot.py --check-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROSPECTIVE_PILOT_APPROVED: 'true'
+      - uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Install existing locked dependencies
+        run: poetry install --no-interaction --no-root --only main
+      - name: Verify locked SDK offline
+        run: |
+          poetry run python tests/check_research_sdk_offline.py
+          poetry run python tests/check_prospective_sdk_offline.py
+      - name: Run frozen public pairs once
+        run: poetry run python prospective_pilot.py --execute
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROSPECTIVE_PILOT_APPROVED: 'true'
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Retain public forecasts and partial failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-prospective-pilot-20261010
+          path: prospective-pilot-result.json
+          if-no-files-found: ignore
+          retention-days: 30

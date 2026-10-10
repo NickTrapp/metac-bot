@@ -195,7 +195,8 @@ def _read_response(response: Any, *, research: bool, accessed_at: str) -> dict:
             "estimated_cost_usd": str(cost)}
 
 
-def _parse_forecast(text: str, known_sources: set[str]) -> dict:
+def _parse_forecast(text: str, known_sources: set[str], *,
+                    allow_empty_sources: bool = False) -> dict:
     try:
         value = json.loads(text)
     except (ValueError, TypeError):
@@ -211,7 +212,8 @@ def _parse_forecast(text: str, known_sources: set[str]) -> dict:
     if (not isinstance(value["uncertainties"], list)
             or not all(isinstance(s, str) and s.strip() for s in value["uncertainties"])):
         raise ResearchBlocked("Forecast uncertainties are malformed.")
-    if (not isinstance(value["source_urls"], list) or not value["source_urls"]
+    if (not isinstance(value["source_urls"], list)
+            or (not value["source_urls"] and not allow_empty_sources)
             or any(not isinstance(url, str) or url not in known_sources
                    for url in value["source_urls"])):
         raise ResearchBlocked("Forecast uses unavailable source provenance.")

@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "pilot_id": "public-short-horizon-20261010-v1",
+  "frozen_at_utc": "2026-10-10T04:02:50.527343Z",
+  "selection_reference_time_utc": "2026-10-10T03:57:22Z",
+  "questions": [
+    {
+      "question_id": "qNZCdLqRRN",
+      "title": "Will Everton win the Premier League match at Hull City scheduled for October 11, 2026?",
+      "description": "Hull City hosts Everton in the Premier League on October 11, 2026.",
+      "resolution_criteria": "YES if Everton wins; NO if Hull City wins or the match is drawn. Use the official Premier League result.",
+      "fine_print": "If postponed, use the rescheduled fixture if it takes place before May 31, 2027; otherwise N/A. If abandoned after kickoff, use the Premier League's official result. If neither an official result nor a completed replay exists within 72 hours after abandonment, N/A.",
+      "event_start_time_utc": "2026-10-11T13:00:00Z",
+      "expected_outcome_time_utc": "2026-10-11T15:30:00Z",
+      "resolution_source_url": "https://www.premierleague.com/en/match/2645250/hull-city-vs-everton/info",
+      "schedule_source_urls": [
+        "https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season",
+        "https://www.premierleague.com/en/match/2645250/hull-city-vs-everton/info"
+      ],
+      "outcome_source_urls": [
+        "https://www.premierleague.com/en/match/2645250/hull-city-vs-everton/info",
+        "https://www.premierleague.com/en/matches/premier-league/2026-27"
+      ],
+      "event_key": "epl-2026-10-11-hull-everton",
+      "url": "https://manifold.markets/Web3ICP/epl-will-everton-beat-hull",
+      "event_time_utc": "2026-10-11T13:00:00Z",
+      "public": true,
+      "source": "manifold",
+      "market_id": "qNZCdLqRRN",
+      "retrieved_at_utc": "2026-10-10T03:59:59.355318Z",
+      "outcome_type": "BINARY",
+      "expected_outcome_time_basis": "Planning estimate: verified kickoff plus 2.5 hours for normal completion. Not an official finish time or guaranteed market resolution time.",
+      "research_allowed_domains": [
+        "premierleague.com",
+        "hullcity.com",
+        "evertonfc.com"
+      ],
+      "selection_question_sha256": "2bc1e5a864b483f15df8ac62cf85135b380b397ad4d19fea8c8295dc7864adaa"
+    },
+    {
+      "question_id": "5dhzPglphE",
+      "title": "Will Manchester City win its next 2026/27 Premier League match against Liverpool, scheduled for October 11, 2026?",
+      "description": "Liverpool hosts Manchester City at Anfield on October 11, 2026. Only the next Premier League head-to-head fixture between these clubs counts.",
+      "resolution_criteria": "YES if Manchester City wins; NO if Liverpool wins or the match is drawn. Determine the result from the official Premier League record.",
+      "fine_print": "If postponed, use the rescheduled match if it is played before the official end of the 2026/27 Premier League season. If not played during that season, N/A. Meetings in other competitions, including the FA Cup, EFL Cup and UEFA Champions League, do not count.",
+      "event_start_time_utc": "2026-10-11T15:30:00Z",
+      "expected_outcome_time_utc": "2026-10-11T18:00:00Z",
+      "resolution_source_url": "https://www.premierleague.com/en/matches/premier-league/2026-27",
+      "schedule_source_urls": [
+        "https://www.premierleague.com/en/news/4675097/all-380-fixtures-for-202627-premier-league-season",
+        "https://live.mancity.com/news/mens/liverpool-v-city-premier-league-match-preview-october-2026-63926279"
+      ],
+      "outcome_source_urls": [
+        "https://www.premierleague.com/en/matches/premier-league/2026-27",
+        "https://www.liverpoolfc.com/matches/mens-team/liverpool-v-manchester-city-english-premier-league-20261011"
+      ],
+      "event_key": "epl-2026-10-11-liverpool-manchester-city",
+      "url": "https://manifold.markets/Web3ICP/epl-will-manchester-city-beat-liver",
+      "event_time_utc": "2026-10-11T15:30:00Z",
+      "public": true,
+      "source": "manifold",
+      "market_id": "5dhzPglphE",
+      "retrieved_at_utc": "2026-10-10T04:00:01.850405Z",
+      "outcome_type": "BINARY",
+      "expected_outcome_time_basis": "Planning estimate: verified kickoff plus 2.5 hours for normal completion. Not an official finish time or guaranteed market resolution time.",
+      "research_allowed_domains": [
+        "premierleague.com",
+        "mancity.com",
+        "liverpoolfc.com"
+      ],
+      "selection_question_sha256": "ff477480bfa31b225e4169caea37e5f3e78aed248d17bef5e4c3de6455e1dbec"
+    },
+    {
+      "question_id": "6pgNuAdsnq",
+      "title": "Will Chicago and Green Bay score at least 45 combined points in their October 11, 2026 NFL Week 5 game?",
+      "description": "Chicago Bears at Green Bay Packers, NFL Week 5, October 11, 2026; total-score threshold 44.5.",
+      "resolution_criteria": "YES for a combined final score of 45 or higher; NO for 44 or lower. Include overtime scoring and use the official NFL box score.",
+      "fine_print": "If postponement, cancellation or suspension prevents official completion by October 18, 2026, N/A. The source does not specify the timezone for that date-only deadline; do not invent one when applying a contingency.",
+      "event_start_time_utc": "2026-10-11T17:00:00Z",
+      "expected_outcome_time_utc": "2026-10-11T21:00:00Z",
+      "resolution_source_url": "https://www.nfl.com/games/bears-at-packers-2026-reg-5",
+      "schedule_source_urls": [
+        "https://www.packers.com/news/time-change-packers-bears-kickoff-on-oct-11-moving-to-noon-ct-2026",
+        "https://www.packers.com/schedule/2026-opponents-app"
+      ],
+      "outcome_source_urls": [
+        "https://www.nfl.com/games/bears-at-packers-2026-reg-5"
+      ],
+      "event_key": "nfl-2026-reg5-bears-packers",
+      "url": "https://manifold.markets/Web3ICP/nfl-week-5-will-the-total-combined-L2Z9OAzgO2",
+      "event_time_utc": "2026-10-11T17:00:00Z",
+      "public": true,
+      "source": "manifold",
+      "market_id": "6pgNuAdsnq",
+      "retrieved_at_utc": "2026-10-10T04:00:04.223678Z",
+      "outcome_type": "BINARY",
+      "expected_outcome_time_basis": "Planning estimate: verified kickoff plus 4 hours for normal completion. Not an official finish time or guaranteed market resolution time.",
+      "research_allowed_domains": [
+        "nfl.com",
+        "packers.com",
+        "chicagobears.com"
+      ],
+      "selection_question_sha256": "f31588414ba0772085dc291a10e33c4c443d1a876b18383775edb78cb622ac44"
+    },
+    {
+      "question_id": "Cggy66ROsy",
+      "title": "Will Minnesota and New Orleans score at least 43 combined points in their October 11, 2026 NFL Week 5 game?",
+      "description": "Minnesota Vikings at New Orleans Saints, NFL Week 5, October 11, 2026; total-score threshold 42.5.",
+      "resolution_criteria": "YES for a combined final score of at least 43; NO for 42 or less. Overtime scoring is included. The source permits the official NFL Game Center or ESPN box score; this pilot uses the NFL primary source.",
+      "fine_print": "If postponed or rescheduled, use the final score only if the game is completed by Wednesday, October 14, 2026. Cancellation or non-completion by that date gives N/A. The original date-only deadline has no specified timezone; a disputed boundary must remain unresolved rather than receiving an invented cutoff.",
+      "event_start_time_utc": "2026-10-11T17:00:00Z",
+      "expected_outcome_time_utc": "2026-10-11T21:00:00Z",
+      "resolution_source_url": "https://www.nfl.com/games/vikings-at-saints-2026-reg-5",
+      "schedule_source_urls": [
+        "https://www.neworleanssaints.com/game-day/2026/reg-week5/vikings-at-saints/",
+        "https://www.caesarssuperdome.com/events/detail/saints-vikings"
+      ],
+      "outcome_source_urls": [
+        "https://www.nfl.com/games/vikings-at-saints-2026-reg-5",
+        "https://www.neworleanssaints.com/game-day/2026/reg-week5/vikings-at-saints/"
+      ],
+      "event_key": "nfl-2026-reg5-vikings-saints",
+      "url": "https://manifold.markets/Web3ICP/nfl-week-5-will-the-total-combined-lynzh650QR",
+      "event_time_utc": "2026-10-11T17:00:00Z",
+      "public": true,
+      "source": "manifold",
+      "market_id": "Cggy66ROsy",
+      "retrieved_at_utc": "2026-10-10T04:00:07.412943Z",
+      "outcome_type": "BINARY",
+      "expected_outcome_time_basis": "Planning estimate: verified kickoff plus 4 hours for normal completion. Not an official finish time or guaranteed market resolution time.",
+      "research_allowed_domains": [
+        "nfl.com",
+        "neworleanssaints.com",
+        "vikings.com"
+      ],
+      "selection_question_sha256": "2b62cdb72cfed3c6983a0afc3d06c4c6dabe88910cf80f1451747e23cebd5f41"
+    },
+    {
+      "question_id": "Lgg99d8ph0",
+      "title": "Will Las Vegas and New England score at least 46 combined points in their October 11, 2026 NFL game?",
+      "description": "Las Vegas Raiders at New England Patriots, NFL Week 5, October 11, 2026; total-score threshold 45.5.",
+      "resolution_criteria": "YES for a combined final score of 46 or more; NO for 45 or fewer. Count any overtime points. The market permits the official NFL.com or ESPN final score; this pilot uses NFL.com.",
+      "fine_print": "A postponed or suspended game must be officially completed by Wednesday, October 14, 2026; otherwise N/A. The date-only deadline has no specified timezone, so do not invent one for a disputed edge case.",
+      "event_start_time_utc": "2026-10-11T17:00:00Z",
+      "expected_outcome_time_utc": "2026-10-11T21:00:00Z",
+      "resolution_source_url": "https://www.nfl.com/games/raiders-at-patriots-2026-reg-5",
+      "schedule_source_urls": [
+        "https://www.raiders.com/news/how-to-watch-listen-to-livestream-las-vegas-raiders-at-new-england-patriots-101126-nfl-week-5",
+        "https://www.patriots.com/news/game-preview-patriots-vs-raiders-nfl-week-5"
+      ],
+      "outcome_source_urls": [
+        "https://www.nfl.com/games/raiders-at-patriots-2026-reg-5"
+      ],
+      "event_key": "nfl-2026-reg5-raiders-patriots",
+      "url": "https://manifold.markets/Web3ICP/nfl-week-5-will-the-total-combined-ucsOnnyIyS",
+      "event_time_utc": "2026-10-11T17:00:00Z",
+      "public": true,
+      "source": "manifold",
+      "market_id": "Lgg99d8ph0",
+      "retrieved_at_utc": "2026-10-10T04:00:10.186611Z",
+      "outcome_type": "BINARY",
+      "expected_outcome_time_basis": "Planning estimate: verified kickoff plus 4 hours for normal completion. Not an official finish time or guaranteed market resolution time.",
+      "research_allowed_domains": [
+        "nfl.com",
+        "raiders.com",
+        "patriots.com"
+      ],
+      "selection_question_sha256": "7b961f385d9aa88b63f71b30416c33be2ae8974723b9be6b329557f798a4d75b"
+    }
+  ],
+  "selection_question_hash_spec": {
+    "algorithm": "sha256",
+    "encoding": "UTF-8",
+    "canonical_json": "sort_keys=True, separators=(comma,colon), ensure_ascii=False; no trailing newline",
+    "fields": [
+      "question_id",
+      "title",
+      "description",
+      "resolution_criteria",
+      "fine_print",
+      "url",
+      "event_time_utc",
+      "event_start_time_utc",
+      "expected_outcome_time_utc",
+      "resolution_source_url",
+      "public"
+    ]
+  }
+}
