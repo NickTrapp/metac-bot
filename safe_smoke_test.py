@@ -44,7 +44,7 @@ def verify_campaign_context(env: dict[str, str], workflow: str,
         raise RuntimeError("Only the manual initial test is supported.")
     if env.get("GITHUB_RUN_ATTEMPT") != "1":
         raise RuntimeError("Re-runs are blocked; reconcile prior spend before another test.")
-    if expected_run_number != 1 and not (workflow == END_TO_END_WORKFLOW and expected_run_number == 3):
+    if expected_run_number != 1 and not (workflow == END_TO_END_WORKFLOW and expected_run_number == 4):
         raise RuntimeError("Unrecognized reviewed campaign run number.")
     if env.get("GITHUB_RUN_NUMBER") != str(expected_run_number):
         raise RuntimeError("Only the reviewed campaign run number is allowed, even if old history was deleted.")

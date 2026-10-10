@@ -39,7 +39,7 @@ def prior_history():
 
 def recovery_env():
     return {"GITHUB_REPOSITORY": safe.REPOSITORY, "GITHUB_EVENT_NAME": "workflow_dispatch",
-        "GITHUB_RUN_ATTEMPT": "1", "GITHUB_RUN_NUMBER": "3", "GITHUB_RUN_ID": "999",
+        "GITHUB_RUN_ATTEMPT": "1", "GITHUB_RUN_NUMBER": "4", "GITHUB_RUN_ID": "999",
         "GITHUB_SHA": "a" * 40, "INITIAL_OPENAI_TEST_APPROVED": "true",
         "METACULUS_TEST_SUBMISSION_APPROVED": "true",
         "GITHUB_WORKFLOW_REF": f"{safe.REPOSITORY}/.github/workflows/{safe.END_TO_END_WORKFLOW}@refs/heads/main"}
@@ -48,8 +48,10 @@ def recovery_env():
 def recovery_history():
     common = {"path": f".github/workflows/{safe.END_TO_END_WORKFLOW}", "event": "workflow_dispatch",
               "head_branch": "main", "workflow_id": 380215345, "run_attempt": 1}
-    return {"total_count": 3, "workflow_runs": [
-        common | {"id": 999, "head_sha": "a" * 40, "run_number": 3, "status": "in_progress", "conclusion": None},
+    return {"total_count": 4, "workflow_runs": [
+        common | {"id": 999, "head_sha": "a" * 40, "run_number": 4, "status": "in_progress", "conclusion": None},
+        common | {"id": 38019568451, "head_sha": e2e.SELECTOR_COMMIT, "run_number": 3,
+                  "status": "completed", "conclusion": "failure"},
         common | {"id": 38019014010, "head_sha": e2e.PREFLIGHT_COMMIT, "run_number": 2,
                   "status": "completed", "conclusion": "failure"},
         common | {"id": 38018946468, "head_sha": e2e.PREFLIGHT_COMMIT, "run_number": 1,
@@ -57,10 +59,12 @@ def recovery_history():
 
 
 def preflight_jobs(run_id=38018946468, job_id=114115438500):
+    source = e2e.SELECTOR_COMMIT if run_id == 38019568451 else e2e.PREFLIGHT_COMMIT
+    outcomes = e2e.SELECTOR_STEPS if run_id == 38019568451 else e2e.PREFLIGHT_STEPS
     return {"total_count": 1, "jobs": [{"id": job_id, "run_id": run_id, "run_attempt": 1,
-        "head_sha": e2e.PREFLIGHT_COMMIT, "name": "test_area_check", "status": "completed", "conclusion": "failure",
+        "head_sha": source, "name": "test_area_check", "status": "completed", "conclusion": "failure",
         "steps": [{"name": name, "status": "completed", "conclusion": conclusion}
-                  for name, conclusion in e2e.PREFLIGHT_STEPS.items()]}]}
+                  for name, conclusion in outcomes.items()]}]}
 
 
 def empty_history():
@@ -114,14 +118,16 @@ class CampaignTests(unittest.TestCase):
 
 
 class RecoveryTests(unittest.TestCase):
-    def test_exact_two_preflights_and_recovery_are_allowed(self):
+    def test_exact_three_reconciled_runs_and_recovery_are_allowed(self):
         e2e.verify_recovery_history(recovery_env(), recovery_history())
         self.assertEqual(e2e.PREFLIGHT_COMMIT, "199d840c3c0a3866b28b3a35f6c38f9ea4623441")
         self.assertEqual(e2e.PREFLIGHT_RUNS, ((38018946468, 1, 114115438500), (38019014010, 2, 114115645940)))
+        self.assertEqual(e2e.SELECTOR_RUN, (38019568451, 3, 114117334084))
+        self.assertEqual(e2e.SELECTOR_COMMIT, "31f3f2b5ab2c50f4d1ee8355c85faaf47fe6bdf5")
 
     def test_every_changed_prior_or_current_metadata_field_blocks(self):
-        for index in range(3):
-            for key, value in [("head_sha", "b" * 40), ("run_number", 4), ("run_attempt", 2),
+        for index in range(4):
+            for key, value in [("head_sha", "b" * 40), ("run_number", 5), ("run_attempt", 2),
                     ("status", "queued"), ("conclusion", "success"), ("event", "schedule"),
                     ("head_branch", "other"), ("path", "other.yaml"), ("workflow_id", 999)]:
                 history = recovery_history(); history["workflow_runs"][index][key] = value
@@ -129,7 +135,7 @@ class RecoveryTests(unittest.TestCase):
                     e2e.verify_recovery_history(recovery_env(), history)
 
     def test_incomplete_deleted_duplicate_extra_or_unknown_history_blocks(self):
-        cases = [{}, recovery_history() | {"total_count": 2}, recovery_history() | {"total_count": 4}]
+        cases = [{}, recovery_history() | {"total_count": 3}, recovery_history() | {"total_count": 5}]
         for change in ("missing", "duplicate", "extra", "unknown", "malformed"):
             history = recovery_history(); runs = history["workflow_runs"]
             if change == "missing": runs.pop()
@@ -183,18 +189,19 @@ class RecoveryTests(unittest.TestCase):
             with self.subTest(jobs=jobs), self.assertRaises(e2e.TestBlocked):
                 e2e.verify_preflight_jobs(jobs, 38018946468, 114115438500)
 
-    def test_gate_reads_both_pinned_attempts_and_preserves_prior_reservation(self):
+    def test_gate_reads_all_pinned_attempts_and_preserves_prior_reservation(self):
         with patch.object(e2e, "read_workflow_history", side_effect=[recovery_history(), prior_history()]) as history, \
              patch.object(e2e, "read_actions_json", side_effect=[preflight_jobs(run_id, job_id)
-                for run_id, _, job_id in e2e.PREFLIGHT_RUNS]) as jobs:
+                for run_id, _, job_id in e2e.RECONCILED_RUNS]) as jobs:
             e2e.check_end_to_end_gate(recovery_env())
         self.assertEqual([call.args[1] for call in jobs.call_args_list], [
-            "runs/38018946468/attempts/1/jobs?per_page=100", "runs/38019014010/attempts/1/jobs?per_page=100"])
+            "runs/38018946468/attempts/1/jobs?per_page=100", "runs/38019014010/attempts/1/jobs?per_page=100",
+            "runs/38019568451/attempts/1/jobs?per_page=100"])
         self.assertEqual([call.args[1] for call in history.call_args_list], [safe.END_TO_END_WORKFLOW, safe.WORKFLOW])
         self.assertEqual(e2e.PRIOR_RESERVED_USD + safe.MAX_REQUEST_ATTEMPTS * safe.RESERVATION_PER_REQUEST_USD, 2)
 
     def test_bad_context_is_rejected_before_history_read(self):
-        for key, value in [("GITHUB_RUN_NUMBER", "1"), ("GITHUB_RUN_NUMBER", "2"), ("GITHUB_RUN_NUMBER", "4"),
+        for key, value in [("GITHUB_RUN_NUMBER", "1"), ("GITHUB_RUN_NUMBER", "2"), ("GITHUB_RUN_NUMBER", "3"), ("GITHUB_RUN_NUMBER", "5"),
                            ("GITHUB_RUN_ATTEMPT", "2"), ("GITHUB_EVENT_NAME", "schedule"),
                            ("GITHUB_REPOSITORY", "other/repo"), ("GITHUB_WORKFLOW_REF", "other"),
                            ("INITIAL_OPENAI_TEST_APPROVED", "false"), ("METACULUS_TEST_SUBMISSION_APPROVED", "false")]:
@@ -218,8 +225,66 @@ class RecoveryTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             safe.verify_campaign_context(env, safe.WORKFLOW, 3)
 
+    def test_only_exact_manually_reconciled_selector_job_is_allowed(self):
+        data = preflight_jobs(38019568451, 114117334084)
+        e2e.verify_preflight_jobs(data, 38019568451, 114117334084)
+        for key, value in [("run_attempt", 2), ("head_sha", e2e.PREFLIGHT_COMMIT), ("id", 999)]:
+            changed = copy.deepcopy(data); changed["jobs"][0][key] = value
+            with self.subTest(key=key), self.assertRaises(e2e.TestBlocked):
+                e2e.verify_preflight_jobs(changed, 38019568451, 114117334084)
+        with self.assertRaises(e2e.TestBlocked):
+            e2e.verify_preflight_jobs(data, 38019568451, 999)
+        for step in data["jobs"][0]["steps"]:
+            if step["name"].startswith("Check bot identity"):
+                step["conclusion"] = "success"
+        with self.assertRaises(e2e.TestBlocked):
+            e2e.verify_preflight_jobs(data, 38019568451, 114117334084)
+
 
 class TargetTests(unittest.TestCase):
+    def test_schema_valid_empty_criteria_are_preserved_without_invented_rules(self):
+        p = post(); p["question"]["resolution_criteria"] = ""
+        t = e2e.validate_target(p, 101, 900, datetime.now(timezone.utc))
+        self.assertEqual(t.resolution_criteria, "")
+        self.assertEqual(t.title, "Synthetic question?")
+        for value in (None, 17, {}, []):
+            p["question"]["resolution_criteria"] = value
+            with self.subTest(value=value), self.assertRaises(e2e.TestBlocked):
+                e2e.validate_target(p, 101, 900, datetime.now(timezone.utc))
+        for value in ("", "  ", None):
+            p = post(); p["question"]["title"] = value
+            with self.subTest(title=value), self.assertRaises(e2e.TestBlocked):
+                e2e.validate_target(p, 101, 900, datetime.now(timezone.utc))
+
+    def test_official_taxonomy_serializers_do_not_create_outside_scoring_membership(self):
+        # Official projects/serializers/common.py serializes these classifications
+        # alongside tournaments, keyed by type. Source-derived, not a live fixture.
+        p = post()
+        for index, kind in enumerate(("category", "topic", "news_category")):
+            p["projects"][kind] = [{"id": 901 + index, "slug": "synthetic-label", "name": "Synthetic label", "type": kind}]
+        self.assertEqual(e2e.validate_target(p, 101, 900, datetime.now(timezone.utc)).post_id, 101)
+
+    def test_scoring_unknown_malformed_or_mislabeled_memberships_fail_closed(self):
+        for kind in ("tournament", "question_series", "index", "site_main", "community", "leaderboard_tag", "personal_project", "unknown"):
+            p = post(); p["projects"][kind] = [{"id": 901, "slug": "outside", "type": kind}]
+            with self.subTest(kind=kind), self.assertRaises(e2e.TestBlocked):
+                e2e.validate_target(p, 101, 900, datetime.now(timezone.utc))
+        for entry in [None, {}, {"id": True, "slug": "label", "type": "category"},
+                      {"id": 901, "slug": "", "type": "category"},
+                      {"id": 901, "slug": "label", "type": "tournament"},
+                      {"id": 901, "slug": "label", "type": "category", "score_type": "peer"},
+                      {"id": 901, "slug": "label", "type": "category", "primary_leaderboard_id": 3}]:
+            p = post(); p["projects"]["category"] = [entry]
+            with self.subTest(entry=entry), self.assertRaises(e2e.TestBlocked):
+                e2e.validate_target(p, 101, 900, datetime.now(timezone.utc))
+        for value in ({"id": 901, "slug": "label", "type": "category"}, None):
+            p = post(); p["projects"]["category"] = value
+            with self.assertRaises(e2e.TestBlocked):
+                e2e.validate_target(p, 101, 900, datetime.now(timezone.utc))
+        p = post(); p["projects"]["unknown"] = []
+        with self.assertRaises(e2e.TestBlocked):
+            e2e.validate_target(p, 101, 900, datetime.now(timezone.utc))
+
     def test_exact_test_project_and_standalone_open_binary(self):
         self.assertEqual(e2e.validate_project(project()), 900)
         t = target()
@@ -279,6 +344,44 @@ class TargetTests(unittest.TestCase):
         self.assertEqual(e2e.select_target(client).post_id, 101)
         self.assertEqual(client.get.call_args_list[2].args[0], "/api/posts/101/")
 
+    def test_diagnostics_distinguish_empty_rejected_and_previously_forecasted(self):
+        bad = post(); bad["projects"]["tournament"] = [{"id": 999, "slug": "outside", "type": "tournament"}]
+        scenarios = [([project(), {"results": []}], {}),
+            ([project(), {"results": [{"id": 101}]}, bad], {"outside_scoring_membership": 1}),
+            ([project(), {"results": [{"id": 101}]}, post(), {"results": [{"question_id": 202, "forecasts": [{}]}]}], {"previously_forecasted": 1})]
+        for responses, reasons in scenarios:
+            client = Mock(); client.get.side_effect = responses; output = io.StringIO()
+            with contextlib.redirect_stdout(output), self.assertRaisesRegex(e2e.TestBlocked, "No eligible"):
+                e2e.select_target(client)
+            diagnostic = json.loads(output.getvalue())["selection_diagnostics"]
+            self.assertEqual(diagnostic["rejection_counts"], reasons)
+            self.assertFalse(diagnostic["selected"])
+            self.assertNotIn("Synthetic question", output.getvalue())
+
+    def test_diagnostics_never_emit_untrusted_exception_details(self):
+        client = Mock(); client.get.side_effect = [project(), {"results": [{"id": 101}]}, post()]
+        output = io.StringIO()
+        with patch.object(e2e, "validate_target", side_effect=e2e.TestBlocked("PRIVATE KEY OR BODY")), \
+             contextlib.redirect_stdout(output), self.assertRaises(e2e.TestBlocked):
+            e2e.select_target(client)
+        self.assertNotIn("PRIVATE", output.getvalue())
+        self.assertEqual(json.loads(output.getvalue())["selection_diagnostics"]["rejection_counts"], {"unclassified_validation_failure": 1})
+
+    def test_selector_failure_is_before_budget_paid_calls_and_write(self):
+        client = Mock(); client.get.side_effect = [project(), {"results": []}]
+        with patch.object(e2e, "check_end_to_end_gate"), patch.object(e2e, "check_connection", return_value=123), \
+             patch.object(e2e, "MetaculusTestClient", return_value=client), patch.object(e2e, "RequestBudget") as budget, \
+             patch.object(e2e, "make_forecast") as paid, contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(e2e.TestBlocked, "No eligible"):
+                e2e.run_test({"METACULUS_TOKEN": "dummy-test-token"})
+        budget.assert_not_called(); paid.assert_not_called(); client.post_once.assert_not_called()
+
+    def test_listing_size_is_bounded_before_detail_fetches(self):
+        client = Mock(); client.get.side_effect = [project(), {"results": [{"id": i + 1} for i in range(101)]}]
+        with self.assertRaises(e2e.TestBlocked):
+            e2e.select_target(client)
+        self.assertEqual(client.get.call_count, 2)
+
 
 class PayloadAndWriteTests(unittest.TestCase):
     def test_exactly_one_forecast_and_private_reasoning_correct_ids(self):
@@ -289,7 +392,7 @@ class PayloadAndWriteTests(unittest.TestCase):
         self.assertEqual(c["on_post"], 101)
         self.assertTrue(c["is_private"])
         self.assertTrue(c["included_forecast"])
-        self.assertEqual(c["text"], "Setup test run 456\n\nReason (at)someone")
+        self.assertEqual(c["text"], "Setup test run 456\n\nIntegration test only; not calibrated research.\n\nReason (at)someone")
         self.assertNotIn("acting_user", payload)
 
     def test_invalid_probabilities_explanations_and_markers_rejected(self):
@@ -302,7 +405,7 @@ class PayloadAndWriteTests(unittest.TestCase):
 
     def test_reasoning_whitespace_is_normalized_before_exact_readback(self):
         payload = e2e.make_payload(target(), 0.5, "  Reason with model newline\n  ", "456")
-        self.assertEqual(payload["comments"][0]["text"], "Setup test run 456\n\nReason with model newline")
+        self.assertEqual(payload["comments"][0]["text"], "Setup test run 456\n\nIntegration test only; not calibrated research.\n\nReason with model newline")
         started = datetime.now(timezone.utc).timestamp()
         client = Mock(); client.get.side_effect = readback_data(payload, started)
         self.assertEqual(e2e.verify_readback(client, target(), payload, 123, started), (True, True))

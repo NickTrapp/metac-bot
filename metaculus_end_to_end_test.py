@@ -38,7 +38,10 @@ MAX_RESPONSE_BYTES = 1024 * 1024
 PREFLIGHT_COMMIT = "199d840c3c0a3866b28b3a35f6c38f9ea4623441"
 PREFLIGHT_RUNS = ((38018946468, 1, 114115438500), (38019014010, 2, 114115645940))
 E2E_WORKFLOW_ID = 380215345
-RECOVERY_RUN_NUMBER = 3
+RECOVERY_RUN_NUMBER = 4
+SELECTOR_RUN = (38019568451, 3, 114117334084)
+SELECTOR_COMMIT = "31f3f2b5ab2c50f4d1ee8355c85faaf47fe6bdf5"
+RECONCILED_RUNS = PREFLIGHT_RUNS + (SELECTOR_RUN,)
 PREFLIGHT_STEPS = {
     "Set up job": "success",
     "Run actions/checkout@v4": "success",
@@ -52,6 +55,36 @@ PREFLIGHT_STEPS = {
     "Post Run actions/setup-python@v5": "skipped",
     "Post Run actions/checkout@v4": "success",
     "Complete job": "success",
+}
+# Manually reviewed immutable run 3 log ended with the exact select_target error
+# before RequestBudget construction, make_forecast, or post_once in SELECTOR_COMMIT.
+# Job failure alone is NOT proof of no effects; this exception names that one
+# already-reconciled log/run/job only. Any rerun, changed source or metadata blocks.
+SELECTOR_STEPS = PREFLIGHT_STEPS | {
+    "Verify one-shot history and cumulative authorization": "success",
+    "Install Poetry": "success",
+    "Install locked dependencies": "success",
+    "Verify baseline formats with fake responses": "success",
+    "Check bot identity, submit one test forecast, and verify readback": "failure",
+}
+TAXONOMY_TYPES = frozenset({"category", "topic", "news_category"})
+# Closed vocabulary only. Never print an upstream message, payload, or user data.
+SELECTION_REASONS = {
+    "Test question identity does not match.": "post_identity",
+    "Test question memberships are unavailable.": "memberships_missing",
+    "Question is not owned by the designated test area.": "wrong_default_project",
+    "Question memberships cannot be verified.": "memberships_malformed",
+    "Question has a visible membership outside the test area.": "outside_scoring_membership",
+    "Only a standalone binary test question is allowed.": "not_standalone_binary",
+    "Question and post identifiers do not match.": "question_post_mismatch",
+    "Question is not approved and unresolved.": "not_approved_unresolved",
+    "Bot forecasting permission is not established for this question.": "forecast_permission",
+    "Question timing cannot be verified.": "timing_missing_or_malformed",
+    "Question is not open for forecasting.": "not_open",
+    "Question is already closed.": "closed",
+    "Question has already resolved.": "resolved",
+    "Question resolution cannot be verified as undecided.": "resolution_not_null",
+    "Question text or resolution criteria are unavailable.": "question_text_missing",
 }
 
 
@@ -79,8 +112,8 @@ def check_prior_campaign(history: dict[str, Any]) -> None:
 
 def verify_recovery_history(env: dict[str, str], history: dict[str, Any]) -> None:
     runs = history.get("workflow_runs")
-    if history.get("total_count") != 3 or not isinstance(runs, list) or len(runs) != 3:
-        raise TestBlocked("Recovery needs exactly the two reviewed preflights and this run.")
+    if history.get("total_count") != 4 or not isinstance(runs, list) or len(runs) != 4:
+        raise TestBlocked("Recovery needs exactly the three reviewed no-spend runs and this run.")
     if any(not isinstance(run, dict) or not positive_id(run.get("id")) for run in runs):
         raise TestBlocked("Recovery run identities are unavailable.")
     by_id = {run["id"]: run for run in runs}
@@ -88,14 +121,15 @@ def verify_recovery_history(env: dict[str, str], history: dict[str, Any]) -> Non
     source_sha = env.get("GITHUB_SHA", "")
     if not current_id.isdigit() or len(source_sha) != 40 or any(c not in "0123456789abcdef" for c in source_sha):
         raise TestBlocked("Current recovery run identity cannot be established.")
-    expected_ids = {run_id for run_id, _, _ in PREFLIGHT_RUNS} | {int(current_id)}
-    if len(expected_ids) != 3 or set(by_id) != expected_ids:
+    expected_ids = {run_id for run_id, _, _ in RECONCILED_RUNS} | {int(current_id)}
+    if len(expected_ids) != 4 or set(by_id) != expected_ids:
         raise TestBlocked("Recovery history contains missing, duplicate, or unreviewed runs.")
     common = {"path": f".github/workflows/{END_TO_END_WORKFLOW}",
               "event": "workflow_dispatch", "head_branch": "main",
               "workflow_id": E2E_WORKFLOW_ID, "run_attempt": 1}
-    for run_id, number, _ in PREFLIGHT_RUNS:
-        expected = common | {"head_sha": PREFLIGHT_COMMIT, "run_number": number,
+    for run_id, number, _ in RECONCILED_RUNS:
+        source = SELECTOR_COMMIT if run_id == SELECTOR_RUN[0] else PREFLIGHT_COMMIT
+        expected = common | {"head_sha": source, "run_number": number,
                              "status": "completed", "conclusion": "failure"}
         if any(by_id[run_id].get(k) != v for k, v in expected.items()):
             raise TestBlocked("A reviewed no-effect preflight changed; stop for reconciliation.")
@@ -106,24 +140,28 @@ def verify_recovery_history(env: dict[str, str], history: dict[str, Any]) -> Non
 
 
 def verify_preflight_jobs(data: dict[str, Any], run_id: int, job_id: int) -> None:
+    if (run_id, job_id) not in {(r, j) for r, _, j in RECONCILED_RUNS}:
+        raise TestBlocked("No generic failed-job exemption is permitted.")
+    source = SELECTOR_COMMIT if run_id == SELECTOR_RUN[0] else PREFLIGHT_COMMIT
+    outcomes = SELECTOR_STEPS if run_id == SELECTOR_RUN[0] else PREFLIGHT_STEPS
     jobs = data.get("jobs")
     if data.get("total_count") != 1 or not isinstance(jobs, list) or len(jobs) != 1 or not isinstance(jobs[0], dict):
         raise TestBlocked("No-effect preflight job evidence is incomplete.")
     job = jobs[0]
     expected = {"id": job_id, "run_id": run_id, "run_attempt": 1,
-                "head_sha": PREFLIGHT_COMMIT, "name": "test_area_check",
+                "head_sha": source, "name": "test_area_check",
                 "status": "completed", "conclusion": "failure"}
     if any(job.get(k) != v for k, v in expected.items()):
         raise TestBlocked("No-effect preflight job identity changed.")
     steps = job.get("steps")
-    if not isinstance(steps, list) or len(steps) != len(PREFLIGHT_STEPS):
+    if not isinstance(steps, list) or len(steps) != len(outcomes):
         raise TestBlocked("No-effect preflight steps are incomplete.")
     if any(not isinstance(step, dict) or not isinstance(step.get("name"), str) for step in steps):
         raise TestBlocked("No-effect preflight steps are malformed.")
     by_name = {step["name"]: step for step in steps}
-    if set(by_name) != set(PREFLIGHT_STEPS) or any(
+    if set(by_name) != set(outcomes) or any(
             by_name[name].get("status") != "completed" or by_name[name].get("conclusion") != outcome
-            for name, outcome in PREFLIGHT_STEPS.items()):
+            for name, outcome in outcomes.items()):
         raise TestBlocked("A preflight may have reached effect-bearing steps; recovery is blocked.")
 
 
@@ -133,7 +171,7 @@ def check_end_to_end_gate(env: dict[str, str]) -> None:
     check_paid_authorization(env)
     verify_campaign_context(env, END_TO_END_WORKFLOW, RECOVERY_RUN_NUMBER)
     verify_recovery_history(env, read_workflow_history(env, END_TO_END_WORKFLOW))
-    for run_id, _, job_id in PREFLIGHT_RUNS:
+    for run_id, _, job_id in RECONCILED_RUNS:
         jobs = read_actions_json(env, f"runs/{run_id}/attempts/1/jobs?per_page=100")
         verify_preflight_jobs(jobs, run_id, job_id)
     check_prior_campaign(read_workflow_history(env, WORKFLOW))
@@ -182,14 +220,30 @@ def validate_target(post: Any, post_id: int, project_id: int, now: datetime) -> 
     if not isinstance(projects, dict):
         raise TestBlocked("Test question memberships are unavailable.")
     default = projects.get("default_project")
-    if not isinstance(default, dict) or default.get("id") != project_id or default.get("slug") != TEST_SLUG:
+    if (not isinstance(default, dict) or default.get("id") != project_id
+            or default.get("slug") != TEST_SLUG or default.get("type") != "question_series"):
         raise TestBlocked("Question is not owned by the designated test area.")
-    for value in projects.values():
-        entries = [value] if isinstance(value, dict) else value
+    for kind, value in projects.items():
+        if kind not in {"default_project", "question_series", *TAXONOMY_TYPES}:
+            raise TestBlocked("Question has a visible membership outside the test area.")
+        entries = [value] if kind == "default_project" else value
         if not isinstance(entries, list):
             raise TestBlocked("Question memberships cannot be verified.")
         for entry in entries:
-            if not isinstance(entry, dict) or entry.get("id") != project_id or entry.get("slug") != TEST_SLUG:
+            if (not isinstance(entry, dict) or not positive_id(entry.get("id"))
+                    or not isinstance(entry.get("slug"), str) or not entry["slug"]):
+                raise TestBlocked("Question memberships cannot be verified.")
+            expected_type = "question_series" if kind == "default_project" else kind
+            if entry.get("type") != expected_type:
+                raise TestBlocked("Question memberships cannot be verified.")
+            if kind in TAXONOMY_TYPES:
+                # Official serializers place taxonomy alongside actual projects.
+                # These entries must still be well-formed and cannot claim scoring.
+                if any(entry.get(k) is not None for k in ("score_type", "primary_leaderboard", "primary_leaderboard_id")):
+                    raise TestBlocked("Question has a visible membership outside the test area.")
+                continue
+            if (kind not in {"default_project", "question_series"}
+                    or entry["id"] != project_id or entry["slug"] != TEST_SLUG):
                 raise TestBlocked("Question has a visible membership outside the test area.")
     if any(post.get(k) is not None for k in ("conditional", "group_of_questions", "notebook")):
         raise TestBlocked("Only a standalone binary test question is allowed.")
@@ -219,7 +273,9 @@ def validate_target(post: Any, post_id: int, project_id: int, now: datetime) -> 
         value = question.get(key)
         if value is None and key in {"description", "fine_print"}:
             value = ""
-        if not isinstance(value, str) or (key in {"title", "resolution_criteria"} and not value.strip()):
+        # Official Question.resolution_criteria is blank=True. An empty string
+        # is schema-valid for a connectivity fixture; never invent missing rules.
+        if not isinstance(value, str) or (key == "title" and not value.strip()):
             raise TestBlocked("Question text or resolution criteria are unavailable.")
         texts[key] = value
     stable = {"post_id": post_id, "question_id": question["id"], "project_id": project_id,
@@ -303,15 +359,28 @@ def select_target(client: MetaculusTestClient) -> Target:
     rows = listing.get("results") if isinstance(listing, dict) else None
     if not isinstance(rows, list):
         raise TestBlocked("Test-area question list is unavailable.")
+    if len(rows) > 100:
+        raise TestBlocked("Test-area listing exceeded the reviewed candidate limit.")
     ids = sorted({row["id"] for row in rows if isinstance(row, dict) and positive_id(row.get("id"))})
+    diagnostics = {"listed_posts": len(rows), "candidate_ids": len(ids), "rejection_counts": {}, "selected": False}
+    def record(code: str) -> None:
+        counts = diagnostics["rejection_counts"]
+        counts[code] = counts.get(code, 0) + 1
+    def emit() -> None:
+        print(json.dumps({"selection_diagnostics": diagnostics}, sort_keys=True), flush=True)
     for post_id in ids:
         detail = client.get(f"/api/posts/{post_id}/")
         try:
             target = validate_target(detail, post_id, project_id, datetime.now(timezone.utc))
-        except TestBlocked:
+        except TestBlocked as error:
+            record(SELECTION_REASONS.get(str(error), "unclassified_validation_failure"))
             continue
         if forecast_history(client, target.question_id) == []:
+            diagnostics["selected"] = True
+            emit()  # Always before any budget reservation, paid call, or write.
             return target
+        record("previously_forecasted")
+    emit()
     raise TestBlocked("No eligible, previously unforecasted binary test-area question was found.")
 
 
@@ -321,7 +390,8 @@ def make_payload(target: Target, probability: float, reasoning: str, run_id: str
     if not isinstance(reasoning, str) or not reasoning.strip() or len(reasoning) > 20_000 or not run_id.isdigit():
         raise TestBlocked("Forecast explanation or run marker is invalid.")
     # The private explanation must not generate notifications through @mentions.
-    text = f"Setup test run {run_id}\n\n{reasoning.strip().replace('@', '(at)')}"
+    text = (f"Setup test run {run_id}\n\nIntegration test only; not calibrated research.\n\n"
+            f"{reasoning.strip().replace('@', '(at)')}")
     return {"forecasts": [{"question": target.question_id, "probability_yes": probability}],
             "comments": [{"on_post": target.post_id, "text": text,
                           "is_private": True, "included_forecast": True}]}
@@ -381,7 +451,9 @@ async def make_forecast(target: Target, budget: RequestBudget):
         question = BinaryQuestion(question_text=target.title, background_info=target.description,
             resolution_criteria=target.resolution_criteria, fine_print=target.fine_print)
         return await bot._run_forecast_on_binary(question,
-            "No external research. This is only a connectivity test in the official bot testing area.")
+            "No external research. This is only a connectivity test in the official bot testing area. "
+            "If the supplied resolution criteria are blank, state that they are unspecified; do not invent criteria. "
+            "This output is an integration test, not calibrated research.")
 
 
 def run_test(env: dict[str, str]) -> dict[str, Any]:
