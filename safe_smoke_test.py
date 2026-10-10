@@ -18,6 +18,7 @@ import urllib.request
 
 REPOSITORY = "NickTrapp/metac-bot"
 WORKFLOW = "openai_smoke_test.yaml"
+END_TO_END_WORKFLOW = "metaculus_end_to_end_test.yaml"
 MODEL = "gpt-4.1-mini-2025-04-14"
 API_BASE = "https://api.openai.com/v1"
 MAX_OUTPUT_TOKENS = 2048
@@ -32,8 +33,11 @@ INPUT_USD_PER_MILLION = Decimal("0.40")
 OUTPUT_USD_PER_MILLION = Decimal("1.60")
 
 
-def verify_campaign_run(env: dict[str, str], run_history: dict[str, Any]) -> None:
+def verify_campaign_run(env: dict[str, str], run_history: dict[str, Any],
+                        workflow: str = WORKFLOW) -> None:
     """Fail closed, including on missing/incomplete history and re-runs."""
+    if workflow not in {WORKFLOW, END_TO_END_WORKFLOW}:
+        raise RuntimeError("Unrecognized initial-test workflow.")
     if env.get("GITHUB_REPOSITORY") != REPOSITORY:
         raise RuntimeError("Paid execution is restricted to the approved repository.")
     if env.get("GITHUB_EVENT_NAME") != "workflow_dispatch":
@@ -42,7 +46,7 @@ def verify_campaign_run(env: dict[str, str], run_history: dict[str, Any]) -> Non
         raise RuntimeError("Re-runs are blocked; reconcile prior spend before another test.")
     if env.get("GITHUB_RUN_NUMBER") != "1":
         raise RuntimeError("Only campaign run number one is allowed, even if old history was deleted.")
-    if env.get("GITHUB_WORKFLOW_REF") != f"{REPOSITORY}/.github/workflows/{WORKFLOW}@refs/heads/main":
+    if env.get("GITHUB_WORKFLOW_REF") != f"{REPOSITORY}/.github/workflows/{workflow}@refs/heads/main":
         raise RuntimeError("Paid execution must use the reviewed main-branch workflow.")
     runs = run_history.get("workflow_runs")
     if run_history.get("total_count") != 1 or not isinstance(runs, list) or len(runs) != 1:
@@ -51,15 +55,13 @@ def verify_campaign_run(env: dict[str, str], run_history: dict[str, Any]) -> Non
         raise RuntimeError("Cannot establish that this is the first campaign run.")
 
 
-def check_paid_gate(env: dict[str, str]) -> None:
-    if datetime.now(timezone.utc).date().isoformat() > PRICE_RECHECK_AFTER:
-        raise RuntimeError("Recheck model availability and prices before another paid test.")
-    if env.get("INITIAL_OPENAI_TEST_APPROVED") != "true":
-        raise RuntimeError("The initial paid test has not been selected.")
+def read_workflow_history(env: dict[str, str], workflow: str) -> dict[str, Any]:
+    if workflow not in {WORKFLOW, END_TO_END_WORKFLOW}:
+        raise RuntimeError("Unrecognized initial-test workflow.")
     token = env.get("GH_TOKEN")
     if not token:
         raise RuntimeError("Missing read-only Actions history access; paid calls blocked.")
-    url = f"https://api.github.com/repos/{REPOSITORY}/actions/workflows/{WORKFLOW}/runs?per_page=1"
+    url = f"https://api.github.com/repos/{REPOSITORY}/actions/workflows/{workflow}/runs?per_page=1"
     request = urllib.request.Request(url, headers={
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
@@ -67,10 +69,17 @@ def check_paid_gate(env: dict[str, str]) -> None:
     })
     try:
         with urllib.request.urlopen(request, timeout=20) as response:
-            history = json.load(response)
+            return json.load(response)
     except Exception:
         raise RuntimeError("Cannot verify campaign history; paid calls blocked.") from None
-    verify_campaign_run(env, history)
+
+
+def check_paid_gate(env: dict[str, str], workflow: str = WORKFLOW) -> None:
+    if datetime.now(timezone.utc).date().isoformat() > PRICE_RECHECK_AFTER:
+        raise RuntimeError("Recheck model availability and prices before another paid test.")
+    if env.get("INITIAL_OPENAI_TEST_APPROVED") != "true":
+        raise RuntimeError("The initial paid test has not been selected.")
+    verify_campaign_run(env, read_workflow_history(env, workflow), workflow)
 
 
 @dataclass

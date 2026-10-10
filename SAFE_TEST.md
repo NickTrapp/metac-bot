@@ -1,8 +1,10 @@
 # Initial setup: safe OpenAI connectivity test
 
 This fork is intentionally paused. There are **no scheduled runs**, and the
-legacy main runners exit before doing work. Nothing in this setup submits a
-Metaculus prediction or comment. Do not follow the upstream live-run instructions
+legacy main runners exit before doing work. The original smoke test submits no
+Metaculus prediction or comment. A separately approved, one-shot testing-area
+submission is documented in [END_TO_END_TEST.md](END_TO_END_TEST.md).
+Do not follow the upstream live-run instructions
 in README until a separate live configuration has been reviewed and authorized.
 
 ## What is ready

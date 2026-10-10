@@ -1,0 +1,56 @@
+name: Metaculus test-area end-to-end check (one shot)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_one_test_forecast:
+        description: "Submit exactly one forecast and private explanation to the official bot testing area"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: metaculus-initial-openai-campaign
+  cancel-in-progress: false
+
+jobs:
+  test_area_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run offline safety tests without secrets
+        run: python -m unittest discover -s tests -v
+      - name: Verify one-shot history and cumulative authorization
+        run: python metaculus_end_to_end_test.py --check-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INITIAL_OPENAI_TEST_APPROVED: ${{ inputs.confirm_one_test_forecast }}
+          METACULUS_TEST_SUBMISSION_APPROVED: ${{ inputs.confirm_one_test_forecast }}
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+      - name: Install locked dependencies
+        run: poetry install --no-interaction --no-root --only main
+      - name: Verify baseline formats with fake responses
+        run: poetry run python tests/check_baseline_offline.py
+      - name: Check bot identity, submit one test forecast, and verify readback
+        run: poetry run python metaculus_end_to_end_test.py --execute
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INITIAL_OPENAI_TEST_APPROVED: ${{ inputs.confirm_one_test_forecast }}
+          METACULUS_TEST_SUBMISSION_APPROVED: ${{ inputs.confirm_one_test_forecast }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          METACULUS_TOKEN: ${{ secrets.METACULUS_TOKEN }}
