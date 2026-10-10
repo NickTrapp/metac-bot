@@ -6,6 +6,8 @@
 > their automatic/live-run behavior is intentionally disabled in this fork.
 > The separately approved single testing-area submission is described in
 > [END_TO_END_TEST.md](END_TO_END_TEST.md).
+> The offline-tested research-to-forecast adapter is documented in
+> [RESEARCH_BASELINE.md](RESEARCH_BASELINE.md).
 This repository contains a simple bot meant to get you started with creating your own bot for the AI Forecasting Tournament. Go to https://www.metaculus.com/futureeval/participate/ for more info and tournament rules (and then go to the  "Getting Started" section of our [resources](https://www.metaculus.com/notebooks/38928/ai-benchmark-resources/#want-to-join-the-ai-forecasting-benchmark) page).
 
 **Brand new to this?** You can get a working bot running in about 5 minutes without writing a single line of code — just fork this repo, paste two API keys into GitHub, and click "Run workflow". See **[Quick start](#quick-start--fork-and-use-github-actions)** below.
