@@ -37,6 +37,32 @@ def prior_history():
         "status": "completed", "conclusion": "success", "path": f".github/workflows/{safe.WORKFLOW}"}]}
 
 
+def recovery_env():
+    return {"GITHUB_REPOSITORY": safe.REPOSITORY, "GITHUB_EVENT_NAME": "workflow_dispatch",
+        "GITHUB_RUN_ATTEMPT": "1", "GITHUB_RUN_NUMBER": "3", "GITHUB_RUN_ID": "999",
+        "GITHUB_SHA": "a" * 40, "INITIAL_OPENAI_TEST_APPROVED": "true",
+        "METACULUS_TEST_SUBMISSION_APPROVED": "true",
+        "GITHUB_WORKFLOW_REF": f"{safe.REPOSITORY}/.github/workflows/{safe.END_TO_END_WORKFLOW}@refs/heads/main"}
+
+
+def recovery_history():
+    common = {"path": f".github/workflows/{safe.END_TO_END_WORKFLOW}", "event": "workflow_dispatch",
+              "head_branch": "main", "workflow_id": 380215345, "run_attempt": 1}
+    return {"total_count": 3, "workflow_runs": [
+        common | {"id": 999, "head_sha": "a" * 40, "run_number": 3, "status": "in_progress", "conclusion": None},
+        common | {"id": 38019014010, "head_sha": e2e.PREFLIGHT_COMMIT, "run_number": 2,
+                  "status": "completed", "conclusion": "failure"},
+        common | {"id": 38018946468, "head_sha": e2e.PREFLIGHT_COMMIT, "run_number": 1,
+                  "status": "completed", "conclusion": "failure"}]}
+
+
+def preflight_jobs(run_id=38018946468, job_id=114115438500):
+    return {"total_count": 1, "jobs": [{"id": job_id, "run_id": run_id, "run_attempt": 1,
+        "head_sha": e2e.PREFLIGHT_COMMIT, "name": "test_area_check", "status": "completed", "conclusion": "failure",
+        "steps": [{"name": name, "status": "completed", "conclusion": conclusion}
+                  for name, conclusion in e2e.PREFLIGHT_STEPS.items()]}]}
+
+
 def empty_history():
     return {"results": [{"question_id": 202, "forecasts": []}]}
 
@@ -81,10 +107,116 @@ class CampaignTests(unittest.TestCase):
                 safe.verify_campaign_run(env | {key: "2"}, history, safe.END_TO_END_WORKFLOW)
 
     def test_submission_approval_is_required_before_history_requests(self):
-        with patch.object(e2e, "check_paid_gate") as gate:
+        with patch.object(e2e, "check_paid_authorization") as gate:
             with self.assertRaises(e2e.TestBlocked):
                 e2e.check_end_to_end_gate({})
             gate.assert_not_called()
+
+
+class RecoveryTests(unittest.TestCase):
+    def test_exact_two_preflights_and_recovery_are_allowed(self):
+        e2e.verify_recovery_history(recovery_env(), recovery_history())
+        self.assertEqual(e2e.PREFLIGHT_COMMIT, "199d840c3c0a3866b28b3a35f6c38f9ea4623441")
+        self.assertEqual(e2e.PREFLIGHT_RUNS, ((38018946468, 1, 114115438500), (38019014010, 2, 114115645940)))
+
+    def test_every_changed_prior_or_current_metadata_field_blocks(self):
+        for index in range(3):
+            for key, value in [("head_sha", "b" * 40), ("run_number", 4), ("run_attempt", 2),
+                    ("status", "queued"), ("conclusion", "success"), ("event", "schedule"),
+                    ("head_branch", "other"), ("path", "other.yaml"), ("workflow_id", 999)]:
+                history = recovery_history(); history["workflow_runs"][index][key] = value
+                with self.subTest(index=index, key=key), self.assertRaises(e2e.TestBlocked):
+                    e2e.verify_recovery_history(recovery_env(), history)
+
+    def test_incomplete_deleted_duplicate_extra_or_unknown_history_blocks(self):
+        cases = [{}, recovery_history() | {"total_count": 2}, recovery_history() | {"total_count": 4}]
+        for change in ("missing", "duplicate", "extra", "unknown", "malformed"):
+            history = recovery_history(); runs = history["workflow_runs"]
+            if change == "missing": runs.pop()
+            elif change == "duplicate": runs[2] = runs[1]
+            elif change == "extra": runs.append({"id": 998})
+            elif change == "unknown": runs[2]["id"] = 998
+            else: runs[2] = None
+            cases.append(history)
+        for history in cases:
+            with self.subTest(history=history), self.assertRaises(e2e.TestBlocked):
+                e2e.verify_recovery_history(recovery_env(), history)
+
+    def test_wrong_current_run_identity_blocks(self):
+        for key, value in [("GITHUB_RUN_ID", "38018946468"), ("GITHUB_RUN_ID", "bad"),
+                           ("GITHUB_SHA", ""), ("GITHUB_SHA", "g" * 40)]:
+            with self.subTest(key=key), self.assertRaises(e2e.TestBlocked):
+                e2e.verify_recovery_history(recovery_env() | {key: value}, recovery_history())
+
+    def test_exact_attempt_jobs_verify(self):
+        e2e.verify_preflight_jobs(preflight_jobs(), 38018946468, 114115438500)
+
+    def test_any_changed_step_outcome_or_status_blocks(self):
+        for index in range(len(e2e.PREFLIGHT_STEPS)):
+            for key, value in [("conclusion", "cancelled"), ("status", "in_progress")]:
+                jobs = preflight_jobs(); jobs["jobs"][0]["steps"][index][key] = value
+                with self.subTest(index=index, key=key), self.assertRaises(e2e.TestBlocked):
+                    e2e.verify_preflight_jobs(jobs, 38018946468, 114115438500)
+
+    def test_executed_effect_step_is_never_reconciled(self):
+        for name in ["Install Poetry", "Install locked dependencies", "Verify baseline formats with fake responses",
+                     "Check bot identity, submit one test forecast, and verify readback"]:
+            jobs = preflight_jobs()
+            for step in jobs["jobs"][0]["steps"]:
+                if step["name"] == name: step["conclusion"] = "success"
+            with self.subTest(name=name), self.assertRaises(e2e.TestBlocked):
+                e2e.verify_preflight_jobs(jobs, 38018946468, 114115438500)
+
+    def test_wrong_job_metadata_and_missing_duplicate_or_extra_steps_block(self):
+        cases = [{}, preflight_jobs() | {"total_count": 2}]
+        for key, value in [("id", 999), ("run_id", 999), ("run_attempt", 2), ("head_sha", "b" * 40),
+                           ("name", "other"), ("status", "in_progress"), ("conclusion", "success")]:
+            jobs = preflight_jobs(); jobs["jobs"][0][key] = value; cases.append(jobs)
+        for change in ("missing", "duplicate", "extra", "malformed"):
+            jobs = preflight_jobs(); steps = jobs["jobs"][0]["steps"]
+            if change == "missing": steps.pop()
+            elif change == "duplicate": steps[-1] = steps[-2]
+            elif change == "extra": steps.append(steps[-1])
+            else: steps[-1] = None
+            cases.append(jobs)
+        for jobs in cases:
+            with self.subTest(jobs=jobs), self.assertRaises(e2e.TestBlocked):
+                e2e.verify_preflight_jobs(jobs, 38018946468, 114115438500)
+
+    def test_gate_reads_both_pinned_attempts_and_preserves_prior_reservation(self):
+        with patch.object(e2e, "read_workflow_history", side_effect=[recovery_history(), prior_history()]) as history, \
+             patch.object(e2e, "read_actions_json", side_effect=[preflight_jobs(run_id, job_id)
+                for run_id, _, job_id in e2e.PREFLIGHT_RUNS]) as jobs:
+            e2e.check_end_to_end_gate(recovery_env())
+        self.assertEqual([call.args[1] for call in jobs.call_args_list], [
+            "runs/38018946468/attempts/1/jobs?per_page=100", "runs/38019014010/attempts/1/jobs?per_page=100"])
+        self.assertEqual([call.args[1] for call in history.call_args_list], [safe.END_TO_END_WORKFLOW, safe.WORKFLOW])
+        self.assertEqual(e2e.PRIOR_RESERVED_USD + safe.MAX_REQUEST_ATTEMPTS * safe.RESERVATION_PER_REQUEST_USD, 2)
+
+    def test_bad_context_is_rejected_before_history_read(self):
+        for key, value in [("GITHUB_RUN_NUMBER", "1"), ("GITHUB_RUN_NUMBER", "2"), ("GITHUB_RUN_NUMBER", "4"),
+                           ("GITHUB_RUN_ATTEMPT", "2"), ("GITHUB_EVENT_NAME", "schedule"),
+                           ("GITHUB_REPOSITORY", "other/repo"), ("GITHUB_WORKFLOW_REF", "other"),
+                           ("INITIAL_OPENAI_TEST_APPROVED", "false"), ("METACULUS_TEST_SUBMISSION_APPROVED", "false")]:
+            with patch.object(e2e, "read_workflow_history") as history:
+                with self.subTest(key=key, value=value), self.assertRaises(RuntimeError):
+                    e2e.check_end_to_end_gate(recovery_env() | {key: value})
+                history.assert_not_called()
+
+    def test_missing_job_evidence_stops_without_api_work(self):
+        with patch.object(e2e, "read_workflow_history", return_value=recovery_history()), \
+             patch.object(e2e, "read_actions_json", side_effect=RuntimeError("Unavailable")), \
+             patch.object(e2e, "check_connection") as connection, patch.object(e2e, "make_forecast") as paid:
+            with self.assertRaises(RuntimeError):
+                e2e.run_test(recovery_env())
+            connection.assert_not_called(); paid.assert_not_called()
+
+    def test_original_smoke_gate_still_rejects_run_three_and_override(self):
+        env = recovery_env() | {"GITHUB_WORKFLOW_REF": f"{safe.REPOSITORY}/.github/workflows/{safe.WORKFLOW}@refs/heads/main"}
+        with self.assertRaises(RuntimeError):
+            safe.verify_campaign_run(env, recovery_history())
+        with self.assertRaises(RuntimeError):
+            safe.verify_campaign_context(env, safe.WORKFLOW, 3)
 
 
 class TargetTests(unittest.TestCase):
@@ -279,6 +411,10 @@ class SequenceTests(unittest.TestCase):
         self.assertIn("group: metaculus-initial-openai-campaign", text)
         self.assertIn("cancel-in-progress: false", text)
         self.assertNotIn("contents: write", text)
+        self.assertNotIn("inputs:", text)
+        self.assertNotIn("confirm_one_test_forecast", text)
+        self.assertEqual(text.count('INITIAL_OPENAI_TEST_APPROVED: "true"'), 2)
+        self.assertEqual(text.count('METACULUS_TEST_SUBMISSION_APPROVED: "true"'), 2)
 
 
 if __name__ == "__main__":

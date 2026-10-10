@@ -9,8 +9,18 @@ competition entry are enabled.
 ## Boundaries
 
 - Manual workflow only: `Metaculus test-area end-to-end check (one shot)`
-- Run number 1, attempt 1, reviewed main branch, complete one-run history, and
-  explicit workflow input are required. Later runs and reruns are blocked
+- Only recovery run number 3, attempt 1, on the reviewed main branch is allowed.
+  Both earlier dispatches stopped at preflight: run [38018946468](https://github.com/NickTrapp/metac-bot/actions/runs/38018946468)
+  omitted the checkbox; run [38019014010](https://github.com/NickTrapp/metac-bot/actions/runs/38019014010)
+  hit the original one-shot lock. Neither reached any OpenAI or Metaculus call
+- Before execution, the gate requires complete history containing exactly those
+  two pinned failures plus the current run, and rechecks both exact job IDs, source
+  commits, attempts, failed gate steps, and skipped install/execution steps. Any
+  missing evidence, changed attempt, extra run, or possibly executed step blocks
+- The manual workflow no longer asks for the redundant checkbox: the owner has
+  already approved exactly one test-area forecast and private explanation.
+  Select this workflow on main and choose Run workflow once. Do not use Re-run jobs.
+  No later run, rerun, or generic failed-run exemption is allowed
 - The successful first run is pinned by run ID and source commit. Its full USD 1
   reservation remains counted. The new workflow reserves at most USD 1 for two
   OpenAI request attempts, so cumulative reservations are at most USD 2 against

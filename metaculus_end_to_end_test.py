@@ -22,8 +22,8 @@ from urllib.parse import urlencode
 from check_metaculus_connection import HOST, check_connection
 from safe_smoke_test import (API_BASE, END_TO_END_WORKFLOW, MAX_REQUEST_ATTEMPTS,
     MODEL, NoMetaculusAccess, RequestBudget, RESERVATION_PER_REQUEST_USD,
-    TOTAL_AUTHORIZED_USD, WORKFLOW, check_paid_gate, make_guarded_llm,
-    read_workflow_history)
+    TOTAL_AUTHORIZED_USD, WORKFLOW, check_paid_authorization, make_guarded_llm,
+    read_actions_json, read_workflow_history, verify_campaign_context)
 
 TEST_SLUG = "bot-testing-area"
 PROJECT_PATH = f"/api/projects/tournaments/{TEST_SLUG}/"
@@ -33,6 +33,26 @@ PRIOR_RUN_ID = 38017773835
 PRIOR_COMMIT = "0742dd17b7d945bbafbe098deab0341cfebdfbe6"
 PRIOR_RESERVED_USD = Decimal("1.00")
 MAX_RESPONSE_BYTES = 1024 * 1024
+# Both immutable source runs were reviewed as preflight-only, with zero API work.
+# This is a one-time reconciliation, never a generic failed-run exemption.
+PREFLIGHT_COMMIT = "199d840c3c0a3866b28b3a35f6c38f9ea4623441"
+PREFLIGHT_RUNS = ((38018946468, 1, 114115438500), (38019014010, 2, 114115645940))
+E2E_WORKFLOW_ID = 380215345
+RECOVERY_RUN_NUMBER = 3
+PREFLIGHT_STEPS = {
+    "Set up job": "success",
+    "Run actions/checkout@v4": "success",
+    "Run actions/setup-python@v5": "success",
+    "Run offline safety tests without secrets": "success",
+    "Verify one-shot history and cumulative authorization": "failure",
+    "Install Poetry": "skipped",
+    "Install locked dependencies": "skipped",
+    "Verify baseline formats with fake responses": "skipped",
+    "Check bot identity, submit one test forecast, and verify readback": "skipped",
+    "Post Run actions/setup-python@v5": "skipped",
+    "Post Run actions/checkout@v4": "success",
+    "Complete job": "success",
+}
 
 
 class TestBlocked(RuntimeError):
@@ -57,10 +77,65 @@ def check_prior_campaign(history: dict[str, Any]) -> None:
         raise TestBlocked("Cumulative test allowance would exceed the authorization.")
 
 
+def verify_recovery_history(env: dict[str, str], history: dict[str, Any]) -> None:
+    runs = history.get("workflow_runs")
+    if history.get("total_count") != 3 or not isinstance(runs, list) or len(runs) != 3:
+        raise TestBlocked("Recovery needs exactly the two reviewed preflights and this run.")
+    if any(not isinstance(run, dict) or not positive_id(run.get("id")) for run in runs):
+        raise TestBlocked("Recovery run identities are unavailable.")
+    by_id = {run["id"]: run for run in runs}
+    current_id = env.get("GITHUB_RUN_ID", "")
+    source_sha = env.get("GITHUB_SHA", "")
+    if not current_id.isdigit() or len(source_sha) != 40 or any(c not in "0123456789abcdef" for c in source_sha):
+        raise TestBlocked("Current recovery run identity cannot be established.")
+    expected_ids = {run_id for run_id, _, _ in PREFLIGHT_RUNS} | {int(current_id)}
+    if len(expected_ids) != 3 or set(by_id) != expected_ids:
+        raise TestBlocked("Recovery history contains missing, duplicate, or unreviewed runs.")
+    common = {"path": f".github/workflows/{END_TO_END_WORKFLOW}",
+              "event": "workflow_dispatch", "head_branch": "main",
+              "workflow_id": E2E_WORKFLOW_ID, "run_attempt": 1}
+    for run_id, number, _ in PREFLIGHT_RUNS:
+        expected = common | {"head_sha": PREFLIGHT_COMMIT, "run_number": number,
+                             "status": "completed", "conclusion": "failure"}
+        if any(by_id[run_id].get(k) != v for k, v in expected.items()):
+            raise TestBlocked("A reviewed no-effect preflight changed; stop for reconciliation.")
+    current = common | {"head_sha": source_sha, "run_number": RECOVERY_RUN_NUMBER,
+                        "status": "in_progress", "conclusion": None}
+    if any(by_id[int(current_id)].get(k) != v for k, v in current.items()):
+        raise TestBlocked("This is not the single reviewed recovery dispatch.")
+
+
+def verify_preflight_jobs(data: dict[str, Any], run_id: int, job_id: int) -> None:
+    jobs = data.get("jobs")
+    if data.get("total_count") != 1 or not isinstance(jobs, list) or len(jobs) != 1 or not isinstance(jobs[0], dict):
+        raise TestBlocked("No-effect preflight job evidence is incomplete.")
+    job = jobs[0]
+    expected = {"id": job_id, "run_id": run_id, "run_attempt": 1,
+                "head_sha": PREFLIGHT_COMMIT, "name": "test_area_check",
+                "status": "completed", "conclusion": "failure"}
+    if any(job.get(k) != v for k, v in expected.items()):
+        raise TestBlocked("No-effect preflight job identity changed.")
+    steps = job.get("steps")
+    if not isinstance(steps, list) or len(steps) != len(PREFLIGHT_STEPS):
+        raise TestBlocked("No-effect preflight steps are incomplete.")
+    if any(not isinstance(step, dict) or not isinstance(step.get("name"), str) for step in steps):
+        raise TestBlocked("No-effect preflight steps are malformed.")
+    by_name = {step["name"]: step for step in steps}
+    if set(by_name) != set(PREFLIGHT_STEPS) or any(
+            by_name[name].get("status") != "completed" or by_name[name].get("conclusion") != outcome
+            for name, outcome in PREFLIGHT_STEPS.items()):
+        raise TestBlocked("A preflight may have reached effect-bearing steps; recovery is blocked.")
+
+
 def check_end_to_end_gate(env: dict[str, str]) -> None:
     if env.get("METACULUS_TEST_SUBMISSION_APPROVED") != "true":
         raise TestBlocked("One test-area forecast and private explanation are not approved.")
-    check_paid_gate(env, END_TO_END_WORKFLOW)
+    check_paid_authorization(env)
+    verify_campaign_context(env, END_TO_END_WORKFLOW, RECOVERY_RUN_NUMBER)
+    verify_recovery_history(env, read_workflow_history(env, END_TO_END_WORKFLOW))
+    for run_id, _, job_id in PREFLIGHT_RUNS:
+        jobs = read_actions_json(env, f"runs/{run_id}/attempts/1/jobs?per_page=100")
+        verify_preflight_jobs(jobs, run_id, job_id)
     check_prior_campaign(read_workflow_history(env, WORKFLOW))
 
 

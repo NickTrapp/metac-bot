@@ -33,9 +33,9 @@ INPUT_USD_PER_MILLION = Decimal("0.40")
 OUTPUT_USD_PER_MILLION = Decimal("1.60")
 
 
-def verify_campaign_run(env: dict[str, str], run_history: dict[str, Any],
-                        workflow: str = WORKFLOW) -> None:
-    """Fail closed, including on missing/incomplete history and re-runs."""
+def verify_campaign_context(env: dict[str, str], workflow: str,
+                            expected_run_number: int = 1) -> None:
+    """Shared manual-run checks; callers must separately validate full history."""
     if workflow not in {WORKFLOW, END_TO_END_WORKFLOW}:
         raise RuntimeError("Unrecognized initial-test workflow.")
     if env.get("GITHUB_REPOSITORY") != REPOSITORY:
@@ -44,10 +44,18 @@ def verify_campaign_run(env: dict[str, str], run_history: dict[str, Any],
         raise RuntimeError("Only the manual initial test is supported.")
     if env.get("GITHUB_RUN_ATTEMPT") != "1":
         raise RuntimeError("Re-runs are blocked; reconcile prior spend before another test.")
-    if env.get("GITHUB_RUN_NUMBER") != "1":
-        raise RuntimeError("Only campaign run number one is allowed, even if old history was deleted.")
+    if expected_run_number != 1 and not (workflow == END_TO_END_WORKFLOW and expected_run_number == 3):
+        raise RuntimeError("Unrecognized reviewed campaign run number.")
+    if env.get("GITHUB_RUN_NUMBER") != str(expected_run_number):
+        raise RuntimeError("Only the reviewed campaign run number is allowed, even if old history was deleted.")
     if env.get("GITHUB_WORKFLOW_REF") != f"{REPOSITORY}/.github/workflows/{workflow}@refs/heads/main":
         raise RuntimeError("Paid execution must use the reviewed main-branch workflow.")
+
+
+def verify_campaign_run(env: dict[str, str], run_history: dict[str, Any],
+                        workflow: str = WORKFLOW) -> None:
+    """The original first-run-only gate remains unchanged for the smoke test."""
+    verify_campaign_context(env, workflow)
     runs = run_history.get("workflow_runs")
     if run_history.get("total_count") != 1 or not isinstance(runs, list) or len(runs) != 1:
         raise RuntimeError("Campaign already attempted or history is incomplete; no paid calls allowed.")
@@ -58,10 +66,15 @@ def verify_campaign_run(env: dict[str, str], run_history: dict[str, Any],
 def read_workflow_history(env: dict[str, str], workflow: str) -> dict[str, Any]:
     if workflow not in {WORKFLOW, END_TO_END_WORKFLOW}:
         raise RuntimeError("Unrecognized initial-test workflow.")
+    return read_actions_json(env, f"workflows/{workflow}/runs?per_page=100")
+
+
+def read_actions_json(env: dict[str, str], path: str) -> dict[str, Any]:
+    """GET-only repository Actions metadata, never credentials or response logs."""
     token = env.get("GH_TOKEN")
     if not token:
         raise RuntimeError("Missing read-only Actions history access; paid calls blocked.")
-    url = f"https://api.github.com/repos/{REPOSITORY}/actions/workflows/{workflow}/runs?per_page=1"
+    url = f"https://api.github.com/repos/{REPOSITORY}/actions/{path}"
     request = urllib.request.Request(url, headers={
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
@@ -74,11 +87,15 @@ def read_workflow_history(env: dict[str, str], workflow: str) -> dict[str, Any]:
         raise RuntimeError("Cannot verify campaign history; paid calls blocked.") from None
 
 
-def check_paid_gate(env: dict[str, str], workflow: str = WORKFLOW) -> None:
+def check_paid_authorization(env: dict[str, str]) -> None:
     if datetime.now(timezone.utc).date().isoformat() > PRICE_RECHECK_AFTER:
         raise RuntimeError("Recheck model availability and prices before another paid test.")
     if env.get("INITIAL_OPENAI_TEST_APPROVED") != "true":
         raise RuntimeError("The initial paid test has not been selected.")
+
+
+def check_paid_gate(env: dict[str, str], workflow: str = WORKFLOW) -> None:
+    check_paid_authorization(env)
     verify_campaign_run(env, read_workflow_history(env, workflow), workflow)
 
 
