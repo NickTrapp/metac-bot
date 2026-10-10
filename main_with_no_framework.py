@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# Initial setup safety lock; this legacy runner has no cumulative spending guard.
+if __name__ == "__main__":
+    raise SystemExit("Legacy runner is disabled. See SAFE_TEST.md.")
+
 import asyncio
 from collections import Counter
 import datetime
@@ -49,7 +53,7 @@ Updates pending for Spring season:
 
 ######################### CONSTANTS #########################
 # Constants
-SUBMIT_PREDICTION = True  # set to True to publish your predictions to Metaculus
+SUBMIT_PREDICTION = False  # set to True to publish your predictions to Metaculus
 USE_EXAMPLE_QUESTIONS = False  # set to True to forecast on the bot-testing-area tournament
 NUM_RUNS_PER_QUESTION = (
     5  # The median forecast is taken between NUM_RUNS_PER_QUESTION runs

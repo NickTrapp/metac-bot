@@ -1,10 +1,13 @@
+# Initial setup safety lock: use the guarded synthetic smoke test only.
+if __name__ == "__main__":
+    raise SystemExit("Live/tournament execution is disabled. See SAFE_TEST.md.")
+
 import argparse
 import asyncio
 import logging
 from datetime import datetime, timezone
 from typing import Literal
 
-import dotenv
 
 # Runtime helpers (env validation, banners, dependency-warning suppression).
 from bot_helpers import (
@@ -41,7 +44,6 @@ from forecasting_tools import (
     structure_output,
 )
 
-dotenv.load_dotenv()
 logger = logging.getLogger(__name__)
 
 
@@ -701,7 +703,7 @@ if __name__ == "__main__":
     run_mode: Literal["tournament", "metaculus_cup", "test_questions"] = args.mode
 
     check_environment(strict=True)
-    publish_to_metaculus = True
+    publish_to_metaculus = False
     print_startup_banner(run_mode, will_publish=publish_to_metaculus)
 
     # Configure the bot. The `llms=` block below is commented out to use

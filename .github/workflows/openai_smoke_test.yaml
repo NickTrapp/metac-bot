@@ -1,0 +1,55 @@
+name: Initial OpenAI smoke test (one shot, no submissions)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_initial_test:
+        description: "Run the initial OpenAI-only synthetic test (no Metaculus submissions)"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+# Shared across all branches and runs. Never overlap or automatically cancel.
+concurrency:
+  group: metaculus-initial-openai-campaign
+  cancel-in-progress: false
+
+jobs:
+  initial_test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run offline safety tests
+        run: python -m unittest discover -s tests -v
+      - name: Check one-shot campaign before installing dependencies
+        run: python -c 'import os; from safe_smoke_test import check_paid_gate; check_paid_gate(dict(os.environ))'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INITIAL_OPENAI_TEST_APPROVED: ${{ inputs.confirm_initial_test }}
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          installer-parallel: true
+      - name: Install locked dependencies
+        run: poetry install --no-interaction --no-root --only main
+      - name: Verify real baseline parsers offline with fake responses
+        run: poetry run python tests/check_baseline_offline.py
+      - name: Run two-request synthetic forecast and parser test
+        run: poetry run python safe_smoke_test.py --execute
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INITIAL_OPENAI_TEST_APPROVED: ${{ inputs.confirm_initial_test }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Intentionally no Metaculus token or other provider credentials.
