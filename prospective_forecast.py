@@ -193,6 +193,69 @@ def new_arm() -> dict:
             "completed_at_utc": None, "requests": [], "forecast": None}
 
 
+# Public diagnostics are a closed vocabulary. Never persist exception text,
+# bodies, requests, headers, tracebacks, or arbitrary provider error codes.
+_LOCAL_EXCEPTION_CLASSES = {
+    rf.ResearchBlocked: "ResearchBlocked", NameError: "NameError",
+    TypeError: "TypeError", AttributeError: "AttributeError",
+    ValueError: "ValueError", TimeoutError: "TimeoutError",
+}
+_OPENAI_EXCEPTION_CLASSES = frozenset({
+    "APIError", "APIStatusError", "APIConnectionError", "APITimeoutError",
+    "APIResponseValidationError", "BadRequestError", "AuthenticationError",
+    "PermissionDeniedError", "NotFoundError", "ConflictError",
+    "UnprocessableEntityError", "RateLimitError", "InternalServerError",
+})
+_PROVIDER_CODES = frozenset({
+    "invalid_api_key", "insufficient_quota", "rate_limit_exceeded",
+    "model_not_found", "context_length_exceeded", "unsupported_parameter",
+    "unsupported_value", "invalid_value", "server_error",
+})
+
+
+def _exception_attribute(exc: Exception, name: str) -> Any:
+    """A diagnostic getter must never replace the original failure."""
+    try:
+        return getattr(exc, name, None)
+    except Exception:
+        return None
+
+
+def _failure_diagnostic(exc: Exception, *, phase: str, response_received: bool) -> dict:
+    cls = type(exc)
+    exception_class = _LOCAL_EXCEPTION_CLASSES.get(cls)
+    if (exception_class is None and cls.__module__ in {"openai", "openai._exceptions"}
+            and cls.__name__ in _OPENAI_EXCEPTION_CLASSES):
+        exception_class = cls.__name__
+    status = _exception_attribute(exc, "status_code")
+    code = _exception_attribute(exc, "code")
+    return {"phase": phase, "response_received": response_received,
+            "exception_class": exception_class,
+            "http_status": status if type(status) is int and 100 <= status <= 599 else None,
+            "provider_code": code if type(code) is str and code in _PROVIDER_CODES else None}
+
+
+def _capture_response_metadata(response: Any, attempt: dict) -> None:
+    """Retain bounded identity/token metadata before strict response parsing.
+
+    These counts are diagnostic only. They do not establish accepted usage,
+    search counts, cost, or billing completeness.
+    """
+    data = response.model_dump(mode="json")
+    if not isinstance(data, dict):
+        return
+    response_id = data.get("id")
+    if (type(response_id) is str
+            and re.fullmatch(r"resp_[A-Za-z0-9_-]{1,192}", response_id)):
+        attempt["response_id"] = response_id
+    usage = data.get("usage")
+    if isinstance(usage, dict):
+        for key in ("input_tokens", "output_tokens"):
+            value = usage.get(key)
+            if type(value) is int and value >= 0:
+                attempt["response_usage_metadata"][key] = value
+
+
 async def run_pilot(raw_manifest: dict, client: Any, *,
                     reserve: Callable[[Decimal], None],
                     checkpoint: Callable[[dict], None],
@@ -254,7 +317,10 @@ async def run_pilot(raw_manifest: dict, client: Any, *,
                 raise rf.ResearchBlocked("Pilot search allowance exhausted.")
             attempt = {"stage": stage, "request_sha256": sha256(payload),
                        "started_at_utc": clock().isoformat(), "completed_at_utc": None,
-                       "response_id": None, "usage_observation": None, "status": "attempted"}
+                       "response_id": None,
+                       "response_usage_metadata": {"input_tokens": None, "output_tokens": None},
+                       "failure_diagnostic": None,
+                       "usage_observation": None, "status": "attempted"}
             arm["requests"].append(attempt)
             result["request_attempts"] += 1
             if research:
@@ -270,10 +336,15 @@ async def run_pilot(raw_manifest: dict, client: Any, *,
                 checkpoint(result)
                 raise rf.ResearchBlocked("Pair deadline reached before send; no further request.")
             response = None
+            response_received = False
+            phase = "sdk_request"
             try:
                 response = await asyncio.wait_for(guarded_client.responses.create(**payload),
                                                   timeout=min(90, PAIR_SECONDS - elapsed,
                                                       (parse_utc(q["event_time_utc"]) - clock()).total_seconds() - MIN_LEAD_SECONDS))
+                response_received = True
+                phase = "response_metadata"
+                _capture_response_metadata(response, attempt)
                 observation = rf._usage_observation(response, stage)
                 attempt["usage_observation"] = observation
                 if observation is not None:
@@ -282,15 +353,18 @@ async def run_pilot(raw_manifest: dict, client: Any, *,
                     result["observed_search_calls"] += observation["search_calls"]
                 else:
                     result["usage_complete"] = False
+                phase = "response_validate"
                 parsed = rf._read_response(response, research=research, accessed_at=clock().isoformat())
-                attempt["response_id"] = parsed["response_id"]
                 attempt["response"] = parsed
                 if research:
+                    phase = "source_validate"
                     validate_research_sources(parsed, q["research_allowed_domains"])
                 attempt["status"] = "completed"
                 return parsed
-            except Exception:
+            except Exception as exc:
                 attempt["status"] = "failed"
+                attempt["failure_diagnostic"] = _failure_diagnostic(
+                    exc, phase=phase, response_received=response_received)
                 if attempt["usage_observation"] is None:
                     result["usage_complete"] = False
                 raise rf.ResearchBlocked("Request or response validation failed; no retry.") from None

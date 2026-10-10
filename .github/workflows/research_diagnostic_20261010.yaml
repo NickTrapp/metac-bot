@@ -1,0 +1,57 @@
+name: Resolved Apollo research diagnostic (one shot)
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/research-diagnostic-20261010.trigger]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: metaculus-initial-openai-campaign
+  cancel-in-progress: false
+
+jobs:
+  research_diagnostic:
+    if: github.repository == 'NickTrapp/metac-bot' && github.run_number == 1 && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline tests without secrets
+        run: python -m unittest discover -s tests -v
+      - name: Verify separate trigger and sole diagnostic run
+        run: python research_diagnostic_check.py --check-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESEARCH_DIAGNOSTIC_APPROVED: 'true'
+      - uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Install existing locked dependencies
+        run: poetry install --no-interaction --no-root --only main
+      - name: Verify locked SDK offline with all network sockets blocked
+        run: poetry run python tests/check_research_diagnostic_sdk_offline.py
+      - name: Send one resolved Apollo primary-domain research request
+        run: poetry run python research_diagnostic_check.py --execute
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESEARCH_DIAGNOSTIC_APPROVED: 'true'
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Retain only allowlisted diagnostics and usage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-apollo-research-diagnostic-20261010
+          path: research-diagnostic-result.json
+          if-no-files-found: ignore
+          retention-days: 30
