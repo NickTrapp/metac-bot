@@ -1,0 +1,57 @@
+name: Controlled Apollo filter comparison (one shot)
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/research-filter-comparison-20261010.trigger]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: metaculus-initial-openai-campaign
+  cancel-in-progress: false
+
+jobs:
+  filter_comparison:
+    if: github.repository == 'NickTrapp/metac-bot' && github.run_number == 1 && github.run_attempt == 1
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline tests without secrets
+        run: python -m unittest discover -s tests -v
+      - name: Verify separate trigger and sole diagnostic run
+        run: python research_filter_comparison.py --check-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESEARCH_FILTER_COMPARISON_APPROVED: 'true'
+      - uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Install existing locked dependencies
+        run: poetry install --no-interaction --no-root --only main
+      - name: Verify locked SDK offline with all network sockets blocked
+        run: poetry run python tests/check_filter_comparison_sdk_offline.py
+      - name: Compare one filtered and one unfiltered Apollo research request
+        run: poetry run python research_filter_comparison.py --execute
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESEARCH_FILTER_COMPARISON_APPROVED: 'true'
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Retain only allowlisted diagnostics and usage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-apollo-filter-comparison-20261010
+          path: research-filter-comparison-result.json
+          if-no-files-found: ignore
+          retention-days: 30
