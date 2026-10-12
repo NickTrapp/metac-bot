@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "experiment_id": "research-loop-development-v1",
+  "mode": "development",
+  "frozen_at_utc": "2026-10-12T03:00:00Z",
+  "questions": [
+    {
+      "question_id": "apollo11-development",
+      "title": "Had Apollo 11 landed humans on the Moon before August 1, 1969?",
+      "description": "This is a historical integration fixture. It checks execution and citation provenance, not forecasting skill.",
+      "resolution_criteria": "Yes if NASA records show Apollo 11's first crewed lunar landing occurred before August 1, 1969 UTC; otherwise No.",
+      "fine_print": "Distinguish the lunar landing from the first moonwalk and the return to Earth.",
+      "url": "https://www.nasa.gov/mission/apollo-11/",
+      "event_time_utc": "1969-08-01T00:00:00Z",
+      "resolution_source_url": "https://www.nasa.gov/mission/apollo-11/",
+      "research_allowed_domains": ["nasa.gov"],
+      "public": true
+    }
+  ]
+}
