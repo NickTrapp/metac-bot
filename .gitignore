@@ -174,3 +174,5 @@ cython_debug/
 
 # Local scratch/temp scripts
 temp/
+# Persistent local research attempts and reports (retain locally; never commit).
+.work/

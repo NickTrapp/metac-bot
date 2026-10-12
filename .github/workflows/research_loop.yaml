@@ -1,0 +1,66 @@
+name: Research loop (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: Send up to three paid API requests for the development fixture
+        type: boolean
+        required: true
+        default: false
+      budget_usd:
+        description: Cumulative reservation allowance (same value on resume)
+        type: string
+        required: true
+        default: '1.00'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: metaculus-initial-openai-campaign
+  cancel-in-progress: false
+
+jobs:
+  research_loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PYTHON_DOTENV_DISABLED: '1'
+      LOOP_BUDGET_USD: ${{ inputs.budget_usd }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline regression suite
+        run: python -m unittest discover -s tests -v
+      - name: Install the existing OpenAI SDK version
+        run: python -m pip install openai==2.13.0
+      - name: Verify the actual SDK through an offline mock transport
+        run: python tests/check_research_loop_sdk_offline.py
+      - name: Restore the previous ledger before admitting any new attempt
+        run: python research_loop_actions.py
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Initialize and bind the campaign to its manifest, code, and budget
+        run: python research_loop.py --initialize --budget-usd "$LOOP_BUDGET_USD"
+      - name: Execute the requested development fixture
+        if: inputs.execute
+        run: python research_loop.py --execute --budget-usd "$LOOP_BUDGET_USD"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Retain the durable ledger and public fixture report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-loop-state
+          path: |
+            .work/research-loop.sqlite
+            .work/research-loop-report.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 90
