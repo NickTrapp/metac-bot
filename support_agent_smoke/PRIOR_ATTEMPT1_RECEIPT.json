@@ -1,0 +1,76 @@
+{
+  "run_id": "sal-20261015-v02",
+  "scope": "public_golden_smoke",
+  "original_source_commit": "672fc801df52d85fc6e681601b737ceae5ac9fd5",
+  "adaptation": "reviewed safety fixes plus explicit no-install stdlib HTTPS transport",
+  "sdk_version": null,
+  "python_version": "3.12.3",
+  "backend": "openai-responses-stdlib-https",
+  "model": "gpt-5.4-mini-2026-03-17",
+  "status": "stopped",
+  "stage_cap_usd": "0.25",
+  "accounted_usd": "0.00157875",
+  "episodes": [
+    {
+      "case_id": "G01",
+      "mode": "direct",
+      "status": "stopped",
+      "reserved_usd": "0.0625",
+      "isolation": "trusted-python-remote-model-only",
+      "checks": {
+        "orders": false,
+        "refunds": false,
+        "escalations": false,
+        "outcome": false,
+        "clarifications": true
+      },
+      "passed": false,
+      "telemetry": {
+        "backend": "openai-responses-stdlib-https",
+        "backend_calls": 1,
+        "budget_accounted_usd": 0.00157875,
+        "cached_input_tokens": 0,
+        "errors": [
+          "malformed_response"
+        ],
+        "estimated_cost_usd": 0.00157875,
+        "input_tokens": 539,
+        "is_llm": true,
+        "latency_ms": 3818.106,
+        "mode": "direct",
+        "model_calls": 1,
+        "output_tokens": 261,
+        "preflight_calls": 1,
+        "reasoning_tokens": 226,
+        "requested_model": "gpt-5.4-mini-2026-03-17",
+        "requests": [
+          {
+            "cached_input_tokens": 0,
+            "error_category": "malformed_response",
+            "error_type": "MalformedResponse",
+            "input_tokens": 539,
+            "latency_ms": 3818.106,
+            "model": "gpt-5.4-mini-2026-03-17",
+            "output_tokens": 261,
+            "preflight_input_tokens": 461,
+            "reasoning_tokens": 226,
+            "request_sha256": "691a6b49a3fa07b06f2a0dc3454e69b4b025422d9d2c2f0857c3b56ce599d367",
+            "response_id": "resp_05c2d79ed97c1e39016ad048359dc887d28fe5374414f56309",
+            "status": "failed"
+          }
+        ],
+        "stop_reason": "usage_overrun",
+        "uncertain_cost": false
+      },
+      "accounted_usd": "0.00157875",
+      "stop_reason": "usage_overrun"
+    }
+  ],
+  "started_at_utc": "2026-10-15T03:27:48.481854+00:00",
+  "manifest_sha256": "fb07f1e79ed9ac52d5967f4d67323b77e9a4905683acc56f465899cbfa01f44a",
+  "pricing_source": "https://developers.openai.com/api/docs/models/gpt-5.4-mini",
+  "generation_bound_usd": "0.195456",
+  "generation_bound_calls": 4,
+  "claim": "public synthetic smoke only; not the private held-out comparison",
+  "pricing_checked_utc": "2026-10-15T03:24:48Z"
+}

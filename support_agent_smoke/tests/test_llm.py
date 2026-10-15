@@ -275,11 +275,11 @@ class AdapterTests(unittest.TestCase):
             return NS(input_tokens=20)
         client = NS(responses=NS(create=create, input_tokens=NS(count=count)))
         backend = OpenAIResponsesBackend(client=client)
-        agent = LLMAgent(backend, live_config(timeout_seconds=2))
+        agent = LLMAgent(backend, live_config(timeout_seconds=2, reasoning_effort="xhigh"))
         self.assertEqual(agent.decide(payload()), {"name": "answer", "arguments": {"text": "ok"}})
         self.assertEqual(calls[0]["timeout"], 2)
         self.assertEqual(count_calls[0]["timeout"], 2)
-        for key in ("model", "input", "instructions", "tools", "tool_choice"):
+        for key in ("model", "input", "instructions", "tools", "tool_choice", "parallel_tool_calls", "reasoning"):
             self.assertEqual(calls[0][key], count_calls[0][key])
         self.assertNotIn("DO NOT LOG THIS", json.dumps(agent.telemetry))
 

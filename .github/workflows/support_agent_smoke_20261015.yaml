@@ -1,9 +1,9 @@
-name: Support public golden smoke (one shot)
+name: Support public golden smoke (controlled continuation)
 
 on:
   push:
     branches: [support-agent-experiment-20261015]
-    paths: [.github/support-agent-smoke-20261015.trigger]
+    paths: [.github/support-agent-smoke-20261015-attempt2.trigger]
 
 permissions:
   contents: read
@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   public_smoke:
-    if: github.repository == 'NickTrapp/metac-bot' && github.run_number == 1 && github.run_attempt == 1
+    if: github.repository == 'NickTrapp/metac-bot' && github.run_number == 2 && github.run_attempt == 1
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     defaults:
@@ -41,7 +41,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: public-support-smoke-sal-20261015-v02
+          name: public-support-smoke-sal-20261015-v02-attempt2
           path: |
             support_agent_smoke/.work/offline-tests.txt
             support_agent_smoke/.work/public-smoke-offline.json

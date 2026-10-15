@@ -184,8 +184,12 @@ class OpenAIResponsesBackend:
         return self._client
 
     def count_input_tokens(self, request: dict[str, Any]) -> int:
+        # Mirror every documented input-affecting count-endpoint field present
+        # in generation. Output limits and storage controls are not count fields.
         args = {k: request[k] for k in ("model", "input", "instructions", "tools",
-                                       "tool_choice") if k in request}
+                                       "tool_choice", "parallel_tool_calls", "reasoning",
+                                       "text", "conversation", "previous_response_id",
+                                       "truncation", "personality") if k in request}
         result = self._get_client().responses.input_tokens.count(**args, timeout=self._timeout_seconds)
         return _int(result.input_tokens, "preflight input tokens")
 

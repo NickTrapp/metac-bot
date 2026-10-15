@@ -56,11 +56,13 @@ class TransportTests(unittest.TestCase):
 
     def test_count_exact_contract_fixed_host_and_endpoint(self):
         backend, connection, calls = self.backend(Response({"input_tokens": 42}))
-        payload = {"model": "snapshot", "input": "hi", "instructions": "rules", "tools": [], "tool_choice": "required", "max_output_tokens": 8192, "reasoning": {"effort": "xhigh"}, "store": False}
+        payload = {"model": "snapshot", "input": "hi", "instructions": "rules", "tools": [], "tool_choice": "required", "max_output_tokens": 8192, "reasoning": {"effort": "xhigh"}, "parallel_tool_calls": False, "store": False}
         self.assertEqual(backend.count_input_tokens(payload), 42)
         method, path, body, headers = connection.requests[0]
         self.assertEqual((method, path), ("POST", "/v1/responses/input_tokens"))
-        self.assertEqual(set(body), {"model", "input", "instructions", "tools", "tool_choice"})
+        self.assertEqual(set(body), {"model", "input", "instructions", "tools", "tool_choice", "reasoning", "parallel_tool_calls"})
+        self.assertEqual(body["reasoning"], {"effort": "xhigh"})
+        self.assertIs(body["parallel_tool_calls"], False)
         self.assertEqual(calls[0][0], "api.openai.com")
         self.assertEqual(calls[0][1]["timeout"], 120)
         self.assertEqual(headers["Authorization"], "Bearer synthetic-secret")
@@ -74,6 +76,27 @@ class TransportTests(unittest.TestCase):
         self.assertEqual(connection.requests[0][2], payload)
         self.assertEqual(connection.requests[0][1], "/v1/responses")
         self.assertEqual(actual, {"id": "response-1", "model": "snapshot", "status": "completed", "output": [{"type": "function_call", "name": "answer", "arguments": "{}", "call_id": "call-1"}], "usage": response["usage"]})
+
+    def test_all_supported_input_fields_match_sdk_preflight(self):
+        payload = {"model":"snapshot", "input":"hi", "instructions":"rules", "tools":[],
+                   "tool_choice":"required", "parallel_tool_calls":False,
+                   "reasoning":{"effort":"xhigh"}, "text":{"format":{"type":"text"}},
+                   "conversation":None, "previous_response_id":None, "truncation":"disabled",
+                   "personality":"pragmatic", "max_output_tokens":8192, "store":False}
+        expected = {k:v for k,v in payload.items() if k not in {"max_output_tokens", "store"}}
+        sdk_calls=[]
+        def count(**kwargs):
+            sdk_calls.append(kwargs)
+            return SimpleNamespace(input_tokens=42)
+        client=SimpleNamespace(responses=SimpleNamespace(input_tokens=SimpleNamespace(count=count)))
+        sdk=OpenAIResponsesBackend(client=client,timeout_seconds=120)
+        backend,connection,_=self.backend(Response({"input_tokens":42}))
+        self.assertEqual(backend.count_input_tokens(payload),sdk.count_input_tokens(payload))
+        sdk_payload=dict(sdk_calls[0]);self.assertEqual(sdk_payload.pop("timeout"),120)
+        self.assertEqual(connection.requests[0][2],expected)
+        self.assertEqual(sdk_payload,expected)
+        self.assertEqual(payload["max_output_tokens"],8192)
+        self.assertIs(payload["store"],False)
 
     def test_projection_and_payload_match_original_sdk_backend(self):
         raw = {"id": "response-parity", "model": "snapshot", "status": "completed",

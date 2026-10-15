@@ -5,7 +5,7 @@
   "files": [
     {
       "path": "public_smoke.py",
-      "sha256": "42ef55c590ac23067171b1587b11302cad16b91cadf553abe2dfdaf9bbb02eb8"
+      "sha256": "10688135543b63cba192d7726446393206397f5cc52009aeac2e3cb90075ef92"
     },
     {
       "path": "supportlab/__init__.py",
@@ -21,11 +21,11 @@
     },
     {
       "path": "supportlab/llm.py",
-      "sha256": "ec072364353d973c7c5a3ce6644f1cacad74522f34423f6e36322f5554e211a4"
+      "sha256": "19bec2ff48c359118cf49659688badf9b6b61da44ec9ef5ab4867e6d63bbfce5"
     },
     {
       "path": "supportlab/stdlib_transport.py",
-      "sha256": "c8b730d26703c06e3c72e83d767309d73d2f3c3c0636cb99fb32c2afe07b0633"
+      "sha256": "2a70936da3fb3c9f81a76e38faa256303502fa150574ede3bd25703d71a96f52"
     },
     {
       "path": "supportlab/bench/__init__.py",
@@ -42,6 +42,12 @@
     {
       "path": "supportlab/bench/data/public-smoke.json",
       "sha256": "e08eaeffc242b1d07d51b7fc13e9065738662e0d680c35134fbed9888c33a079"
+    },
+    {
+      "path": "PRIOR_ATTEMPT1_RECEIPT.json",
+      "sha256": "0ba0597e97a950b611e985a610a9b02ab47e05a79365c092fabf904c0704649e"
     }
-  ]
+  ],
+  "attempt_number": 2,
+  "prior_run_id": 38676380123
 }

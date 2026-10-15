@@ -70,8 +70,12 @@ class StdlibResponsesBackend:
             connection.close()
 
     def count_input_tokens(self, request):
+        # Keep parity with the documented Responses input-token schema and the
+        # SDK projection, including reasoning/tool-format configuration.
         args = {key: request[key] for key in
-                ("model", "input", "instructions", "tools", "tool_choice") if key in request}
+                ("model", "input", "instructions", "tools", "tool_choice",
+                 "parallel_tool_calls", "reasoning", "text", "conversation",
+                 "previous_response_id", "truncation", "personality") if key in request}
         data = self._post("/v1/responses/input_tokens", args)
         count = data.get("input_tokens")
         if type(count) is not int or count < 0:
