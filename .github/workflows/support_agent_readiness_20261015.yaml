@@ -1,0 +1,32 @@
+name: Support experiment credential readiness (no API calls)
+
+on:
+  push:
+    branches: [support-agent-experiment-20261015]
+    paths:
+      - .github/workflows/support_agent_readiness_20261015.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metaculus-initial-openai-campaign
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    if: github.repository == 'NickTrapp/metac-bot' && github.run_number == 1 && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Offline readiness tests without credentials or package installs
+        run: python3 -m unittest discover -s tests -p test_support_agent_readiness.py -v
+      - name: Confirm paid execution is disabled
+        run: python3 support_agent_readiness.py
+      - name: Report only whether the existing OpenAI secret is present
+        run: python3 support_agent_readiness.py --credential-presence
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

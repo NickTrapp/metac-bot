@@ -1,0 +1,52 @@
+name: Support public golden smoke (one shot)
+
+on:
+  push:
+    branches: [support-agent-experiment-20261015]
+    paths: [.github/support-agent-smoke-20261015.trigger]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: metaculus-initial-openai-campaign
+  cancel-in-progress: false
+
+jobs:
+  public_smoke:
+    if: github.repository == 'NickTrapp/metac-bot' && github.run_number == 1 && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: support_agent_smoke
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Run focused offline tests without credentials or installs
+        run: |
+          mkdir -p .work
+          python3 -m unittest discover -s tests -v > .work/offline-tests.txt 2>&1
+      - name: Run the public offline smoke under seccomp
+        run: python3 public_smoke.py
+      - name: Execute only the admitted public smoke
+        run: python3 public_smoke.py --execute
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      - name: Retain only public smoke state and test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: public-support-smoke-sal-20261015-v02
+          path: |
+            support_agent_smoke/.work/offline-tests.txt
+            support_agent_smoke/.work/public-smoke-offline.json
+            support_agent_smoke/.work/public-smoke-live.json
+            support_agent_smoke/PUBLIC_SMOKE_MANIFEST.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30

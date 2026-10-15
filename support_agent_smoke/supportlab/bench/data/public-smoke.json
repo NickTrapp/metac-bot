@@ -1,0 +1,120 @@
+[
+  {
+    "authenticated_customer_id": "C-100",
+    "case_id": "G01",
+    "categories": [
+      "boundary",
+      "refund"
+    ],
+    "documents": [],
+    "expected": {
+      "escalations": 0,
+      "min_clarifications": 0,
+      "orders": [
+        {
+          "amount_cents": 10000,
+          "customer_id": "C-100",
+          "damage_confirmed": false,
+          "delivered_days_ago": 30,
+          "order_id": "ORD-9101",
+          "refunded_cents": 10000,
+          "status": "delivered"
+        }
+      ],
+      "outcome": "refunded",
+      "refunds": [
+        {
+          "amount_cents": 10000,
+          "order_id": "ORD-9101",
+          "reason": "standard"
+        }
+      ]
+    },
+    "faults": {},
+    "name": "standard_boundary",
+    "orders": [
+      {
+        "amount_cents": 10000,
+        "customer_id": "C-100",
+        "damage_confirmed": false,
+        "delivered_days_ago": 30,
+        "order_id": "ORD-9101",
+        "refunded_cents": 0,
+        "status": "delivered"
+      }
+    ],
+    "policy": {
+      "damaged_days": 60,
+      "standard_days": 30
+    },
+    "split": "golden",
+    "turns": [
+      {
+        "confirmation": {
+          "action": "refund",
+          "amount_cents": 10000,
+          "order_id": "ORD-9101",
+          "reason": "standard"
+        },
+        "message_id": "a",
+        "text": "Please refund ORD-9101 in full."
+      }
+    ]
+  },
+  {
+    "authenticated_customer_id": "C-100",
+    "case_id": "G02",
+    "categories": [
+      "boundary",
+      "escalation"
+    ],
+    "documents": [],
+    "expected": {
+      "escalations": 1,
+      "min_clarifications": 0,
+      "orders": [
+        {
+          "amount_cents": 10000,
+          "customer_id": "C-100",
+          "damage_confirmed": false,
+          "delivered_days_ago": 31,
+          "order_id": "ORD-9102",
+          "refunded_cents": 0,
+          "status": "delivered"
+        }
+      ],
+      "outcome": "escalated",
+      "refunds": []
+    },
+    "faults": {},
+    "name": "outside_standard",
+    "orders": [
+      {
+        "amount_cents": 10000,
+        "customer_id": "C-100",
+        "damage_confirmed": false,
+        "delivered_days_ago": 31,
+        "order_id": "ORD-9102",
+        "refunded_cents": 0,
+        "status": "delivered"
+      }
+    ],
+    "policy": {
+      "damaged_days": 60,
+      "standard_days": 30
+    },
+    "split": "golden",
+    "turns": [
+      {
+        "confirmation": {
+          "action": "refund",
+          "amount_cents": 10000,
+          "order_id": "ORD-9102",
+          "reason": "standard"
+        },
+        "message_id": "a",
+        "text": "Refund ORD-9102 please."
+      }
+    ]
+  }
+]

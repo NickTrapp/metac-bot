@@ -1,0 +1,47 @@
+{
+  "run_id": "sal-20261015-v02",
+  "original_source_commit": "672fc801df52d85fc6e681601b737ceae5ac9fd5",
+  "scope": "G01/G02 public regression only",
+  "files": [
+    {
+      "path": "public_smoke.py",
+      "sha256": "42ef55c590ac23067171b1587b11302cad16b91cadf553abe2dfdaf9bbb02eb8"
+    },
+    {
+      "path": "supportlab/__init__.py",
+      "sha256": "971895b154972c15aa57c77f4f14d072466a906047f5d02686302d8b57032041"
+    },
+    {
+      "path": "supportlab/core.py",
+      "sha256": "8ae15a1abf1f756f8cd53b80337745b536c97964fcb3024a088d37cdcbcd9c2a"
+    },
+    {
+      "path": "supportlab/simulator.py",
+      "sha256": "b1ac4671794f1d31dd42914df01115d1598a6ff70a0566bfeb8da36e60fe020d"
+    },
+    {
+      "path": "supportlab/llm.py",
+      "sha256": "ec072364353d973c7c5a3ce6644f1cacad74522f34423f6e36322f5554e211a4"
+    },
+    {
+      "path": "supportlab/stdlib_transport.py",
+      "sha256": "c8b730d26703c06e3c72e83d767309d73d2f3c3c0636cb99fb32c2afe07b0633"
+    },
+    {
+      "path": "supportlab/bench/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "supportlab/bench/process.py",
+      "sha256": "f6c762c2c1b29c1c7c183b9c748177dff1c8969ba98e1502349e346019654592"
+    },
+    {
+      "path": "supportlab/bench/worker.py",
+      "sha256": "a254d77b2d3c6455af2bc322b69090f1d109fc4791d5512d2c3ff9c6f03415a3"
+    },
+    {
+      "path": "supportlab/bench/data/public-smoke.json",
+      "sha256": "e08eaeffc242b1d07d51b7fc13e9065738662e0d680c35134fbed9888c33a079"
+    }
+  ]
+}
